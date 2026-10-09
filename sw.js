@@ -1,4 +1,4 @@
-const V = 'dietnote-v9-2';
+const V = 'dietnote-v9-5';
 const SHELL = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png', './badge-male.png', './badge-female.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(V).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
