@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>bite with me</title>
 <meta name="theme-color" content="#ffffff">
 <meta name="mobile-web-app-capable" content="yes">
@@ -16,7 +16,7 @@
   --bg:#ffffff; --ink:#1f2a37; --sub:#6b7a8c; --faint:#9aa7b5; --line:#e4e9ef;
   --blue:#4f6d8a; --blue2:#7e97ae; --soft:#eef3f7; --soft2:#f6f8fa; --warm:#a86a5f;
 }
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation}  /* 더블탭 확대 막기 */
 html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
   font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Noto Sans KR",sans-serif;font-size:15px}
 body{display:flex;flex-direction:column;height:100dvh;overflow:hidden}
@@ -42,7 +42,6 @@ header h1 small{display:block;font-size:12px;font-weight:450;color:var(--sub);ma
 /* summary (민트 카드) */
 :root{--mint-bg:#E4F4EC;--mint-ink:#1f6b4c;--mint-bar:#1E9E6A;--mint-bar2:#6cc39b;--mint-track:#cbe6d8}
 #summary{margin:0 12px 8px;padding:14px 16px;border:0;border-radius:16px;background:var(--mint-bg);text-align:left;width:calc(100% - 24px);display:block}
-#summary:active{filter:brightness(.98)}
 .s-label{font-size:12px;color:var(--sub)}
 .tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .tile .lab{font-size:12px;color:var(--sub)}
@@ -113,6 +112,13 @@ header h1 small{display:block;font-size:12px;font-weight:450;color:var(--sub);ma
 .open .sheet{display:flex;animation:slideUp .25s ease}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:none}}
+/* 기록 화면 (오른쪽에서 밀려 들어옴). 닫혀 있을 때는 렌더링하지 않음 (iOS 26 상태표시줄) */
+#dayPanel{position:fixed;inset:0;background:#fff;z-index:9;display:none;flex-direction:column;transform:translateX(100%);will-change:transform;touch-action:pan-y}
+#dayPanel.show{display:flex}
+#dayPanel.anim{transition:transform .26s cubic-bezier(.2,.8,.2,1)}
+.panel-h{display:flex;align-items:center;gap:4px;padding:calc(env(safe-area-inset-top) + 10px) 10px 4px 16px}
+.panel-h h2{font-size:17px;font-weight:650;margin:0;flex:1}
+.panel-b{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 16px calc(env(safe-area-inset-bottom) + 24px)}
 .sheet-h{display:flex;align-items:center;padding:14px 16px 8px}
 .sheet-h h2{font-size:16px;margin:0;flex:1}
 .sheet-b{overflow-y:auto;padding:4px 16px calc(env(safe-area-inset-bottom) + 20px)}
@@ -147,15 +153,9 @@ table.hist th:first-child,table.hist td:first-child{text-align:left}
     <h1><span id="appName">bite with me</span><small id="dayLabel">&nbsp;</small></h1>
     <button id="badge" type="button" aria-label="뿅" ontouchstart=""><img alt="" src="badge-male.png"></button>
   </div>
-  <button class="icon-btn" id="btnExcel" aria-label="엑셀 다운로드" title="엑셀 다운로드">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
-  </button>
-  <button class="icon-btn" id="btnSettings" aria-label="설정" title="설정">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
-  </button>
 </header>
 
-<button id="summary" aria-label="오늘 기록 보기"></button>
+<div id="summary"></div>
 
 <main id="chat" aria-live="polite"></main>
 
@@ -166,14 +166,19 @@ table.hist th:first-child,table.hist td:first-child{text-align:left}
   </button>
 </form>
 
-<!-- 오늘 기록 시트 -->
-<div id="daySheet">
-  <div class="sheet-bg" data-close></div>
-  <section class="sheet" role="dialog" aria-label="기록">
-    <div class="sheet-h"><h2>기록</h2><button class="icon-btn" data-close aria-label="닫기">✕</button></div>
-    <div class="sheet-b" id="dayBody"></div>
-  </section>
-</div>
+<!-- 기록 화면: 왼쪽으로 밀면 열리고 오른쪽으로 밀면 닫힘 -->
+<section id="dayPanel" role="dialog" aria-label="기록">
+  <div class="panel-h">
+    <h2>기록</h2>
+    <button class="icon-btn" id="btnExcel" aria-label="엑셀 다운로드" title="엑셀 다운로드">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+    </button>
+    <button class="icon-btn" id="btnSettings" aria-label="설정" title="설정">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+    </button>
+  </div>
+  <div class="panel-b" id="dayBody"></div>
+</section>
 
 <!-- 설정 시트 -->
 <div id="setSheet">
@@ -209,7 +214,7 @@ table.hist th:first-child,table.hist td:first-child{text-align:left}
 
       <div class="sec">데이터</div>
       <div class="row2"><button class="btn ghost" id="exportJson">백업 저장</button><button class="btn ghost" id="importJson">백업 불러오기</button></div>
-      <input type="file" id="importFile" accept="application/json,.json" hidden>
+      <input type="file" id="importFile" accept=".json,application/json,text/plain" hidden>
       <button class="btn danger" id="resetAll">전체 초기화</button>
       <p class="hint">초기화하면 모든 기록이 지워지고 처음부터 다시 시작합니다. 먼저 엑셀이나 백업을 저장해 두세요.</p>
     </div>
@@ -518,7 +523,12 @@ function context(){
   return ctx;
 }
 function systemPrompt(){
-  return `너는 1인용 식단관리 앱 "${S.settings.appName||'bite with me'}"의 기록 도우미이자 트레이너다. 사용자의 채팅 메시지를 읽고 지정된 JSON으로만 응답한다.
+  return `너는 1인용 식단관리 앱 "${S.settings.appName||'bite with me'}" 안에 사는 대화 상대다. 재치 있고 솔직한 친한 친구이면서, 필요할 때는 칼같이 코칭해 주는 트레이너다. 사용자의 채팅 메시지를 읽고 지정된 JSON으로만 응답한다.
+
+[상황 판단 — 두 가지 모드]
+- 사용자의 입력이 식단·운동 기록, 체중·걸음 같은 수치, 피드백이나 코칭 요청일 때는 [코치 모드]로 정확하고 엄격하게 답한다. 계산은 현황 데이터로 칼같이 하고, 말투는 친구 톤을 유지한다.
+- 그 외의 일상 대화(하루 얘기, 고민, 여행, 감정, 헛소리)는 [친구 모드]로 위트 있게 받아친다. 이때는 다이어트·식단·칼로리 이야기로 억지로 화제를 돌리지 않는다. 친구와 카톡하듯 반응하고, 내 생각이나 유머러스한 딴지를 건 뒤 필요하면 가볍게 질문을 건넨다.
+- 한 메시지에 둘이 섞이면 기록·수치는 정확히 처리하고 나머지는 친구처럼 받는다.
 
 [목표 방향 — 감량일 수도, 벌크업일 수도 있다]
 - 이 앱은 감량과 증량(벌크업) 모두에 쓰인다. 방향은 사용자가 설정한 목표 섭취칼로리로 판단한다: 목표 섭취가 평소 소모보다 낮으면 감량, 높으면 증량이다. 현황 데이터의 목표방향을 따른다. 차이가 100kcal 안팎으로 작으면 유지에 가깝다고 보고 조언한다.
@@ -540,17 +550,21 @@ function systemPrompt(){
 - 대화 기록에 나온 기록은 이후 사용자가 앱에서 직접 수정·삭제했을 수 있다. 대화 기록과 현황 데이터가 다르면 항상 현황 데이터가 최신이며 정답이다. 현황에 없는 음식·운동은 언급하지 않는다.
 
 [메모·일정과 조언]
-- 현황의 메모일정은 사용자의 어제·오늘·내일 일정·특이사항이다(회식, 술자리, 여행, 금주, 운동 계획 등). 관련이 있으면 답변에 반영해 구체적으로 짧게(1~2문장) 조언한다. 관련 없을 때는 억지로 언급하지 않고, 같은 조언을 매번 반복하지 않는다.
+- 현황의 메모일정은 사용자의 어제·오늘·내일 일정·특이사항이다(회식, 술자리, 여행, 금주, 운동 계획 등). 코치 모드에서 관련이 있으면 답변에 반영해 구체적으로 짧게(1~2문장) 조언한다. 관련 없을 때는 억지로 언급하지 않고, 같은 조언을 매번 반복하지 않는다.
 - 회식·술자리 당일: 그 전 끼니는 가볍게 하고 단백질은 챙겨 저녁용 칼로리 여유를 남기도록, 안주는 단백질 위주(구이·수육·두부·회 등)로 튀김·면·밥은 줄이도록, 술은 칼로리가 있으니 종류와 양을 정하고 물을 함께 마시도록 조언한다. 남은 칼로리 기준으로 숫자를 들어 말한다.
 - 회식·술자리 다음 날: 수분·전해질 보충, 단백질과 채소 위주의 회복식, 가벼운 유산소를 권하고, 아침 체중 증가는 수분·염분 영향일 수 있다고 알려준다.
 - 사용자가 앞으로의 일정이나 특이사항을 말하면("오늘 저녁 회식 있어", "토요일 등산") 음식 기록 규칙과 별개로 others에 type=note(text는 짧게, date는 YYYY-MM-DD)로 저장하고 reply에 메모했다고 알린다. 취소되면 type=note_remove(target=메모 id)로 지운다.
 
 [reply 작성법]
-- 말투: 적극적이고 친근하며 열정 넘치는 퍼스널 트레이너. 반드시 존댓말을 쓴다. 사용자를 응원하고 동기를 북돋우되, 필요한 말은 분명하게 한다.
-  예) "좋아요, 단백질 35g 확보했어요. 저녁에 닭가슴살 한 덩이만 더하면 오늘 목표를 완벽하게 채웁니다."
-  예) "회식도 전략만 있으면 충분히 괜찮아요. 안주는 수육이나 두부로 고르시고, 술은 두 잔까지만 가 보죠."
-- 과식이나 실수에도 다그치거나 죄책감을 주지 않고, 바로 다음 행동을 구체적으로 제안한다. 근거 없는 과한 칭찬은 하지 않는다.
-- 짧고 힘 있게(보통 2~3문장). 느낌표(!)는 절대 쓰지 않는다. 열정은 느낌표 대신 단어 선택과 구체적인 제안으로 표현하고, 문장은 마침표로 끝낸다. 이모지도 쓰지 않는다.
+- 말투: 존댓말이 기본. 단, 딱딱한 격식체가 아니라 친한 사이의 담백한 존댓말이다("~했어야 했습니다", "~가십시오", "~하시고요"가 구어체와 자연스럽게 섞임).
+- 직진형 오프닝: 인사나 서론 없이 바로 본론으로 들어간다. 마무리도 짧고 현실적인 한마디로 깔끔하게 끝낸다.
+- 공감은 교과서 문장이 아니라 구체적인 장면과 디테일로 한다. 상대가 말한 음식·상황·기분을 그대로 받아서 같이 맞장구치거나 혀를 차 준다.
+- 솔직하게 말한다. 내가 헛다리를 짚었으면 웃기게 인정하고, 아닌 건 아니라고 가볍게 딴지 건다.
+- 절대 금지: 영혼 없는 칭찬, 로봇 같은 격식체("안녕하세요", "도움이 되셨길 바랍니다", "~하시길 바랍니다"), 거창한 비유나 자기계발서식 문장("당신은 ~를 견디는 위대한 여정 중입니다" 같은 것), 매번 반복되는 응원 문구.
+  말투 예) "솔직히 말하면, 그 시간에 편의점 야식 영상 보고 계셨으면 같이 혀나 좀 차 드렸어야 했습니다. 너무 정답만 맞추려고 계산기를 두드렸네요. 이제 물이나 한 컵 마시고 푹 자러 가십시오."
+  코치 모드 예) "80kg 복귀한 건 오늘부터 다시 1,900kcal, 단백질 150g으로 궤도 잡으면 수분 빠지면서 금방 내려가니까 너무 조바심 내지 마시고요. 오늘 저녁 운동부터 묵직하게 치러내고 오십시오."
+- 과식이나 실수에도 다그치거나 죄책감을 주지 않고, 바로 다음 행동을 구체적으로 제안한다.
+- 길이는 상황에 맞게. 기록 응답은 짧게(보통 2~3문장), 일상 대화는 카톡 핑퐁처럼 가볍게. 느낌표(!)를 문장마다 기계적으로 붙이지 않는다. 정말 힘을 줄 때만 가끔 쓴다. 이모지는 쓰지 않는다.
 - 기록했으면 무엇을 몇 kcal로 기록했는지와 추정 근거를 한 줄로. 기록 후 합계/남은 칼로리는 앱이 자동으로 덧붙이니 쓰지 않는다.
 - 질문에는 아래 현황 데이터로 계산한 구체적 숫자로 답한다. "지금 라면 먹으면?" 같은 가정은 그 음식 추정치, 먹은 뒤 남는 섭취 칼로리, 오늘 잉여/결핍 변화, 예상 체중 영향(7,700kcal=1kg)을 계산해 알려준다.
 - 소모 칼로리 = 기초대사량 + 걸음 소모 + 운동 소모. 잉여/결핍 = 섭취 − 소모.
@@ -585,7 +599,7 @@ async function askGemini(userText, note, modelOverride){
   if (!hist.length || hist[hist.length-1].role!=='user') hist.push({role:'user', parts:[{text:userText}]});
   if (note) hist[hist.length-1].parts[0].text += '\n\n[앱 알림] ' + note;
   const body = { systemInstruction:{parts:[{text:systemPrompt()}]}, contents:hist,
-    generationConfig:{ responseMimeType:'application/json', responseSchema:SCHEMA } };
+    generationConfig:{ responseMimeType:'application/json', responseSchema:SCHEMA, ...GEN } };
   const raw = await geminiRaw(body, model);
   let j; try { j = JSON.parse(raw.replace(/^```(json)?|```$/g,'')); } catch(e) { return { reply: raw || '응답을 이해하지 못했어요. 다시 말씀해 주세요.', actions:[] }; }
   const arr = v => Array.isArray(v) ? v : [];
@@ -597,8 +611,19 @@ async function askGemini(userText, note, modelOverride){
   ];
   return { reply:String(j.reply||''), actions };
 }
+// 말투가 유연하도록 온도를 조금 올리고, 같은 표현·주제 반복을 줄임
+const GEN = { temperature:0.8, presencePenalty:0.25 };
 // Gemini 호출 공통: 응답 텍스트를 돌려주고, 오류는 AIError로
+// 모델이 presencePenalty를 지원하지 않으면 그 값만 빼고 한 번 더 보냄
+const noPenalty = new Set();
 async function geminiRaw(body, model){
+  const strip = () => { const b2 = {...body, generationConfig:{...body.generationConfig}}; delete b2.generationConfig.presencePenalty; return b2; };
+  const has = body.generationConfig && body.generationConfig.presencePenalty!=null;
+  if (has && noPenalty.has(model)) return geminiCall(strip(), model);
+  try { return await geminiCall(body, model); }
+  catch(e){ if (e.penalty && has) { noPenalty.add(model); return geminiCall(strip(), model); } throw e; }
+}
+async function geminiCall(body, model){
   const key=S.settings.apiKey;
   const ctl = new AbortController(); const timer = setTimeout(()=>ctl.abort(), TIMEOUT_MS);
   let res;
@@ -613,6 +638,7 @@ async function geminiRaw(body, model){
   clearTimeout(timer);
   const data = await res.json().catch(()=>({}));
   if (!res.ok) { const msg = data.error && data.error.message || res.statusText;
+    if (res.status===400 && /penalty/i.test(msg)) { const e=new AIError(msg,false); e.penalty=true; throw e; }
     if (res.status===400 && /API key/i.test(msg)) throw new AIError('API 키가 올바르지 않아요. 설정에서 확인해 주세요.', false);
     if (res.status===429) throw new AIError('Gemini 사용 한도를 넘었어요. 잠시 후 다시 시도해 주세요.', false);
     if (res.status===404) throw new AIError(`모델 "${model}"을 찾을 수 없어요. 설정에서 모델명을 확인해 주세요.`, false);
@@ -625,7 +651,7 @@ async function geminiRaw(body, model){
 async function askText(system, user){
   const main=(S.settings.model||DEFAULT_MODEL).trim();
   const plan=[[main,0],[main,2000],[main,5000]]; if (main!==FALLBACK_MODEL) plan.push([FALLBACK_MODEL,1000]);
-  const body={ systemInstruction:{parts:[{text:system}]}, contents:[{role:'user', parts:[{text:user}]}] };
+  const body={ systemInstruction:{parts:[{text:system}]}, contents:[{role:'user', parts:[{text:user}]}], generationConfig:{...GEN} };
   let last;
   for (const [model,wait] of plan){
     if (wait) await sleepMs(wait);
@@ -704,7 +730,7 @@ async function handle(text){
     const st = (q.undo||q.steps!=null) ? statusLine() : '';
     addMsg('bot', out.join('\n'), st?{status:st}:{}); render(); return;
   }
-  if (!S.settings.apiKey) { addMsg('bot','음식·운동 칼로리 추정과 질문 답변은 AI가 필요해요. 오른쪽 위 설정에서 Gemini API 키를 입력해 주세요.\n(몸무게·체지방률·걸음수·기상·취침은 지금도 기록할 수 있어요.)'); return; }
+  if (!S.settings.apiKey) { addMsg('bot','음식·운동 칼로리 추정과 질문 답변은 AI가 필요해요. 기록 화면(왼쪽으로 밀기)의 설정에서 Gemini API 키를 입력해 주세요.\n(몸무게·체지방률·걸음수·기상·취침은 지금도 기록할 수 있어요.)'); return; }
   await runAI(text);
 }
 async function runAI(text){
@@ -807,8 +833,9 @@ function reportHTML(rep){
 function reportLine(rep){ const D=rep.data;
   return `[주간 리포트 ${md(D.ws)}~${md(D.we)}] 기록 ${D.n}일 · 평균 ${D.avg==null?'-':sgn(D.avg)}kcal · 누적 ${D.sum==null?'-':sgn(D.sum)}kcal · 체중 ${D.wchg==null?'-':sgn(D.wchg,1)}kg`; }
 function reportPrompt(){
-  return `너는 식단관리 앱 "${S.settings.appName||'bite with me'}"의 퍼스널 트레이너다. 지난 한 주 기록을 보고 주간 리포트 아래에 붙을 조언을 쓴다.
-- 말투: 적극적이고 친근하며 열정 넘치는 트레이너, 반드시 존댓말. 느낌표(!)와 이모지는 절대 쓰지 않고 문장은 마침표로 끝낸다.
+  return `너는 식단관리 앱 "${S.settings.appName||'bite with me'}"의 대화 상대다. 재치 있고 솔직한 친한 친구이면서 숫자는 칼같이 보는 코치다. 지난 한 주 기록을 보고 주간 리포트 아래에 붙을 조언을 쓴다.
+- 말투: 친한 사이의 담백한 존댓말. 인사·서론 없이 바로 본론, 마무리는 짧고 현실적인 한마디. 영혼 없는 칭찬, 격식체, 거창한 비유는 금지. 느낌표는 기계적으로 붙이지 말고 정말 필요할 때만, 이모지는 쓰지 않는다.
+  예) "80kg 복귀한 건 다시 1,900kcal, 단백질 150g으로 궤도 잡으면 수분 빠지면서 금방 내려가니까 너무 조바심 내지 마시고요. 다음 주는 저녁 운동부터 묵직하게 치러내고 오십시오."
 - 분량: 3~4문장, 한두 문단. 순수 텍스트만(마크다운·목록 기호 없이).
 - 목표 방향은 데이터의 목표방향을 따른다(감량 또는 증량). 감량이면 결핍 유지와 체중 감소를, 증량이면 목표 섭취를 채워 잉여를 만들고 체중이 느는 것을 잘한 것으로 본다.
 - 숫자는 데이터에 있는 값만 쓴다. "기록 없음"인 날은 추측하거나 숫자를 만들어 내지 않는다. 기록 없는 날이 많으면 기록을 이어가자고 짧게 권한다.
@@ -835,7 +862,7 @@ async function showWeeklyReport(auto){
     if (S.settings.apiKey) {
       let user = '[지난주 데이터]\n'+JSON.stringify(reportData(rep));
       if (again) user += '\n\n[처음 보여준 조언]\n'+rep.advice+'\n\n위 조언의 큰 맥락(잘한 점, 다음 주 행동)은 그대로 유지하되 문장은 새로 써라. 숫자는 데이터와 같게.';
-      advice = (await askText(reportPrompt(), user)).replace(/!/g,'.').trim();
+      advice = (await askText(reportPrompt(), user)).trim();
       if (!again && advice) rep.advice = advice;
     }
   } catch(e) { advice=''; }
@@ -855,13 +882,21 @@ const isReportAsk = t => /주간\s*(리포트|레포트|보고서|결산)/.test(
 
 /* ============ 남녀 쿠키 아이콘 + 소리 ============ */
 // 섭취가 목표의 80%를 넘으면 뿅↓(뿅5), 아니면 뾰잉(뿅3)
+// 효과음 방식: 오디오 세션을 'ambient'(효과음)로 → 다이내믹 아일랜드에 재생 표시가 뜨지 않고, 무음 모드에선 소리가 나지 않으며, 다른 음악과 섞임
 let actx=null;
-try { if (navigator.audioSession) navigator.audioSession.type='playback'; } catch(_){}
-function audio(){ if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)(); return actx; }
-// 아이폰은 오디오가 '정지' 상태로 시작하고, 앱을 내렸다 올리면 다시 멈춤 → 깨운 뒤에 소리를 예약해야 첫 탭부터 들림
-async function audioReady(){ const c=audio(); if (c.state!=='running') { try { await c.resume(); } catch(_){} }
-  if (!audioReady.unlocked) { const b=c.createBuffer(1,1,22050), s=c.createBufferSource(); s.buffer=b; s.connect(c.destination); s.start(0); audioReady.unlocked=true; }
+try { if (navigator.audioSession) navigator.audioSession.type='ambient'; } catch(_){}
+function audio(){
+  // 앱을 나갔다 오면 아이폰이 오디오를 'interrupted'/'closed'로 바꿔 소리가 안 남 → 그럴 땐 새로 만듦
+  if (actx && (actx.state==='closed' || actx.state==='interrupted')) { try { actx.close(); } catch(_){} actx=null; }
+  if (!actx) actx=new (window.AudioContext||window.webkitAudioContext)();
+  return actx; }
+// 탭(사용자 동작) 안에서 바로 깨워야 첫 탭부터 들림
+async function audioReady(){ const c=audio();
+  const unlock=()=>{ const b=c.createBuffer(1,1,22050), s=c.createBufferSource(); s.buffer=b; s.connect(c.destination); s.start(0); };
+  if (c.state!=='running') { unlock(); try { await c.resume(); } catch(_){} }
   return c; }
+// 앱을 내리면 오디오를 닫아 둠 → 돌아와서 누를 때 깨끗한 새 오디오로 시작
+function audioRelease(){ if (actx) { try { actx.close(); } catch(_){} actx=null; } }
 function sweep(f0,f1,dur,vol){ const c=audio(), t=c.currentTime, o=c.createOscillator(), g=c.createGain();
   o.type='square'; o.frequency.setValueAtTime(f0,t); o.frequency.exponentialRampToValueAtTime(f1,t+dur);
   g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+0.008); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
@@ -874,9 +909,8 @@ function renderBadge(){ const b=$('#badge'), sx=S.profile.sex;
   const src = sx==='female' ? 'badge-female.png' : 'badge-male.png';
   const img=b.querySelector('img'); if (!img.src.endsWith(src)) img.src=src; b.classList.add('on'); }
 $('#badge').addEventListener('click', ()=>{ badgeSound().catch(()=>{}); });
-// 화면을 처음 만질 때 오디오를 미리 깨워 둠
-['touchend','click'].forEach(ev=>document.addEventListener(ev, ()=>{ if(!actx || actx.state!=='running') audioReady().catch(()=>{}); }, {passive:true}));
-document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && actx && actx.state!=='running') actx.resume().catch(()=>{}); });
+document.addEventListener('visibilitychange', ()=>{ if (document.hidden) audioRelease(); });
+window.addEventListener('pagehide', audioRelease);
 
 /* ============ 렌더 ============ */
 function renderSummary(){
@@ -884,7 +918,7 @@ function renderSummary(){
   if (!d) { $('#dayLabel').textContent = profileReady()? '' : '처음 설정이 필요해요';
     el.innerHTML = `<div class="s-label">처음 오셨네요</div><div style="margin-top:4px;font-size:14px">채팅으로 생년월일·성별·키·몸무게·목표를 알려주세요.</div>`; return; }
   const s=summarize(d);
-  $('#dayLabel').textContent = `${dayTitle(d.id)} · 기상 ${hm(d.wakeAt)}${d.sleepAt?' · 취침 '+hm(d.sleepAt):''}`;
+  $('#dayLabel').textContent = dayTitle(d.id);
   const pct = s.tk? Math.min(100, s.intake/s.tk*100) : 0, ppct = s.tp? Math.min(100, s.protein/s.tp*100):0;
   const over = s.remain<0, pDone = s.protRemain<=0;
   el.innerHTML = `<div class="tiles num">
@@ -927,10 +961,10 @@ function renderDaySheet(){
   const del = (kind,id)=>`<button class="del" data-del="${kind}:${id}" aria-label="삭제"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>`;
   let h = `<div class="sec">${dayTitle(d.id)} · 오늘 요약</div>
     <div class="d-grid num">
-      <div><span class="s-label">소모</span><b>${N(s.burn)} <small>kcal</small></b></div>
+      <div><span class="s-label">섭취</span><b>${N(s.intake)} <small>kcal</small></b></div>
       <div><span class="s-label">${s.surplus>=0?'잉여':'결핍'}</span><b class="${s.surplus>0?'pos':'neg'}">${sgn(s.surplus)} <small>kcal</small></b></div>
+      <div><span class="s-label">소모</span><b>${N(s.burn)} <small>kcal</small></b></div>
       <div><span class="s-label">예상 체중 변화</span><b class="${s.expKg>0?'pos':'neg'}">${sgn(s.expKg,2)} <small>kg</small></b></div>
-      <div><span class="s-label">걸음</span><b>${N(s.steps)} <small>보</small></b></div>
     </div>
     <div class="sec">소모 내역</div>
     <div class="list-item"><div class="grow">기초대사량<small>몸무게 ${N(s.weight,1)}kg 기준</small></div><span class="num">${N(s.bmr)} kcal</span></div>
@@ -954,7 +988,43 @@ function renderDaySheet(){
     if(i>=0){ const x=arr.splice(i,1)[0]; toast(`"${x.name}" 삭제됨`); render(); renderDaySheet(); }
   }));
 }
-$('#summary').addEventListener('click', ()=>{ renderDaySheet(); openSheet('#daySheet'); });
+/* 기록 화면 스와이프: 메인 어디서든 왼쪽으로 밀면 열림, 기록 화면에서 오른쪽으로 밀면 닫힘. 손가락을 따라 움직임 */
+const panel=$('#dayPanel');
+let panelOpen=false;
+function panelX(px, anim){ panel.classList.toggle('anim', !!anim); panel.style.transform = `translateX(${px}px)`; }
+function openPanel(){ renderDaySheet(); panel.classList.add('show'); void panel.offsetWidth; panelX(0, true); panelOpen=true; }
+function closePanel(){ panelX(innerWidth, true); panelOpen=false;
+  clearTimeout(closePanel._t); closePanel._t=setTimeout(()=>{ if(!panelOpen){ panel.classList.remove('show'); panel.style.transform=''; } }, 280); }
+(function swipe(){
+  let sx=0, sy=0, st=0, lock=null, active=false;   // lock: 'h' 가로로 미는 중, 'v' 세로 스크롤
+  const sheetOpen = () => !!document.querySelector('#setSheet.open');
+  document.addEventListener('touchstart', e=>{
+    if (e.touches.length!==1 || sheetOpen()) { active=false; return; }
+    const t=e.touches[0]; sx=t.clientX; sy=t.clientY; st=Date.now(); lock=null; active=true;
+  }, {passive:true});
+  document.addEventListener('touchmove', e=>{
+    if (!active) return; const t=e.touches[0], dx=t.clientX-sx, dy=t.clientY-sy;
+    if (!lock) { if (Math.abs(dx)<10 && Math.abs(dy)<10) return;
+      lock = Math.abs(dx) > Math.abs(dy)*1.3 ? 'h' : 'v';
+      if (lock==='h' && (panelOpen ? dx<0 : dx>0)) lock='v';                    // 반대 방향은 무시
+      if (lock==='h' && !panelOpen) { renderDaySheet(); panel.classList.add('show'); }
+      if (lock==='h' && document.activeElement && document.activeElement.blur) document.activeElement.blur(); }
+    if (lock!=='h') return;
+    e.preventDefault();
+    const w=innerWidth; panelX(panelOpen ? Math.max(0, dx) : Math.max(0, w+dx));
+  }, {passive:false});
+  document.addEventListener('touchend', e=>{
+    if (!active || lock!=='h') { active=false; return; } active=false;
+    const dx=e.changedTouches[0].clientX-sx, v=Math.abs(dx)/Math.max(1, Date.now()-st);
+    const far = Math.abs(dx) > innerWidth*0.3 || v > 0.5;
+    if (panelOpen) { far ? closePanel() : panelX(0, true); }
+    else { far ? openPanel() : closePanel(); }
+  });
+  document.addEventListener('touchcancel', ()=>{ if (active && lock==='h') (panelOpen ? panelX(0,true) : closePanel()); active=false; });
+})();
+// 컴퓨터에서 테스트할 때: ←/→ 키
+document.addEventListener('keydown', e=>{ if (e.target.closest && e.target.closest('input,textarea,select')) return;
+  if (e.key==='ArrowLeft' && !panelOpen) openPanel(); if (e.key==='ArrowRight' && panelOpen) closePanel(); });
 
 /* ============ 설정 시트 ============ */
 function fillSettings(){
@@ -1005,10 +1075,30 @@ const stamp = () => ymd(Date.now()).replace(/-/g,'');
 $('#exportJson').addEventListener('click', ()=>{ const c=JSON.parse(JSON.stringify(S)); c.settings.apiKey='';
   download(new Blob([JSON.stringify(c)],{type:'application/json'}), `식단노트_백업_${stamp()}.json`); });
 $('#importJson').addEventListener('click', ()=>$('#importFile').click());
-$('#importFile').addEventListener('change', async e=>{ const f=e.target.files[0]; if(!f) return;
-  try { const j=JSON.parse(await f.text()); if(!j.days||!j.profile) throw 0; const key=S.settings.apiKey;
-    S=Object.assign(fresh(), j); S.settings.apiKey = S.settings.apiKey || key; render(); fillSettings(); toast('백업을 불러왔어요'); }
-  catch(_) { toast('백업 파일을 읽지 못했어요'); } e.target.value=''; });
+// 백업 불러오기: 예전 버전 백업도 지금 형식에 맞게 정리하고, 실제로 저장됐는지 확인
+$('#importFile').addEventListener('change', async e=>{ const f=e.target.files[0]; e.target.value=''; if(!f) return;
+  let j; try { j=JSON.parse((await f.text()).replace(/^﻿/,'')); } catch(_) { toast('백업 파일을 읽지 못했어요'); return; }
+  if (!j || typeof j!=='object' || !j.days || typeof j.days!=='object') { toast('식단 백업 파일이 아니에요'); return; }
+  const keep = S.settings;                               // 지금 기기의 API 키·모델·걸음 주소는 유지
+  const n = Object.assign(fresh(), j);
+  n.profile = j.profile && typeof j.profile==='object' ? j.profile : {};
+  n.settings = Object.assign({}, fresh().settings, j.settings||{});
+  n.settings.apiKey = keep.apiKey || n.settings.apiKey || '';
+  n.settings.model = keep.model || n.settings.model || DEFAULT_MODEL;
+  n.settings.stepTopic = keep.stepTopic || n.settings.stepTopic; n.settings.stepSince = keep.stepSince || '';
+  for (const k of ['notes','steps','chat']) if (!Array.isArray(n[k])) n[k]=[];
+  if (!n.reports || typeof n.reports!=='object') n.reports={};
+  for (const id in n.days){ const d=n.days[id]; if (!d || typeof d!=='object') { delete n.days[id]; continue; }
+    d.id=id; if (!Array.isArray(d.foods)) d.foods=[]; if (!Array.isArray(d.exercises)) d.exercises=[]; if (!d.wakeAt) d.wakeAt=new Date(id+'T07:00').getTime(); }
+  if (!n.cur || !n.days[n.cur]) n.cur = Object.keys(n.days).sort().pop() || null;
+  S = n;
+  let ok=true; try { localStorage.setItem(LS, JSON.stringify(S)); } catch(_) { ok=false; }
+  if (!ok) { S.chat = S.chat.slice(-100); try { localStorage.setItem(LS, JSON.stringify(S)); ok=true; } catch(_) {} }
+  if (!ok) { toast('저장 공간이 부족해서 불러오지 못했어요'); return; }
+  applyAppName(); ensureDay(); render(); fillSettings(); closeSheets(); renderDaySheet();
+  const days=Object.keys(S.days).length;
+  toast(`백업을 불러왔어요 · ${days}일 기록`);
+});
 let resetArm=false;
 $('#resetAll').addEventListener('click', ()=>{
   if(!resetArm){ resetArm=true; $('#resetAll').textContent='한 번 더 누르면 모든 기록이 삭제됩니다'; setTimeout(()=>{resetArm=false;$('#resetAll').textContent='전체 초기화';},4000); return; }
@@ -1085,7 +1175,7 @@ async function syncSteps(manual){
 
 /* ============ 시작 ============ */
 function intro(){
-  addMsg('bot', '안녕하세요!\n시작하려면 아래 정보를 한 번에 알려주세요.\n\n예) 생년월일 1988-03-15, 남성, 키 175, 몸무게 78, 목표 1800kcal, 단백질 120g\n\n기초대사량 계산(Mifflin-St Jeor)에 성별이 필요해요. 음식·운동 칼로리 추정과 질문 답변은 오른쪽 위 설정에서 Gemini API 키를 넣으면 켜집니다.', {sys:true});
+  addMsg('bot', '안녕하세요!\n시작하려면 아래 정보를 한 번에 알려주세요.\n\n예) 생년월일 1988-03-15, 남성, 키 175, 몸무게 78, 목표 1800kcal, 단백질 120g\n\n기초대사량 계산(Mifflin-St Jeor)에 성별이 필요해요. 음식·운동 칼로리 추정과 질문 답변은 화면을 왼쪽으로 밀어 기록 화면을 열고, 위쪽 설정에서 Gemini API 키를 넣으면 켜집니다.', {sys:true});
 }
 const input=$('#input');
 input.addEventListener('input', ()=>{ input.style.height='auto'; input.style.height=Math.min(120,input.scrollHeight)+'px'; });
