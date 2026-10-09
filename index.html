@@ -5,9 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>식단 노트</title>
 <meta name="theme-color" content="#ffffff">
-<meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="color-scheme" content="light">
 <meta name="apple-mobile-web-app-title" content="식단 노트">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -33,22 +32,26 @@ header h1 small{display:block;font-size:12px;font-weight:450;color:var(--sub);ma
 .icon-btn:active{background:var(--soft)}
 .icon-btn svg{width:21px;height:21px}
 
-/* summary */
-#summary{margin:0 12px 6px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:var(--soft2);text-align:left;width:calc(100% - 24px);display:block}
-.s-top{display:flex;align-items:baseline;justify-content:space-between}
+/* summary (민트 카드) */
+:root{--mint-bg:#E4F4EC;--mint-ink:#1f6b4c;--mint-bar:#1E9E6A;--mint-bar2:#6cc39b;--mint-track:#cbe6d8}
+#summary{margin:0 12px 8px;padding:14px 16px;border:0;border-radius:16px;background:var(--mint-bg);text-align:left;width:calc(100% - 24px);display:block}
+#summary:active{filter:brightness(.98)}
 .s-label{font-size:12px;color:var(--sub)}
-.s-big{font-size:22px;font-weight:650;letter-spacing:-.3px}
-.s-big span{font-size:13px;font-weight:450;color:var(--sub)}
-.bar{height:6px;border-radius:3px;background:#dfe6ed;overflow:hidden;margin:7px 0 10px}
-.bar i{display:block;height:100%;background:var(--blue);border-radius:3px;transition:width .3s}
-.bar.over i{background:var(--warm)}
-.s-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
-.s-grid div{background:#fff;border:1px solid var(--line);border-radius:10px;padding:7px 9px}
-.s-grid b{display:block;font-size:15px;font-weight:620;margin-top:1px}
-.s-foot{display:flex;justify-content:space-between;gap:8px;margin-top:9px;font-size:12.5px;color:var(--sub)}
-.s-foot b{color:var(--ink);font-weight:600}
-.pbar{flex:1;max-width:120px;height:5px;margin:0 6px;align-self:center}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tile .lab{font-size:12px;color:var(--sub)}
+.tile .big{font-size:26px;font-weight:700;letter-spacing:-.5px;margin-top:2px;color:var(--mint-ink);line-height:1.2}
+.tile .big small{font-size:13px;font-weight:500;color:var(--sub);margin-left:2px}
+.tile .sub{font-size:12px;color:var(--sub);margin-top:1px}
+.tbar{height:5px;border-radius:3px;background:var(--mint-track);overflow:hidden;margin-top:8px}
+.tbar i{display:block;height:100%;border-radius:3px;background:var(--mint-bar);transition:width .3s}
+.tbar.p i{background:var(--mint-bar2)}
+.tile.over .big{color:var(--warm)}.tile.over .tbar i{background:var(--warm)}
 .pos{color:var(--warm)!important}.neg{color:var(--blue)!important}
+/* 브리핑 상단 4칸 */
+.d-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:4px}
+.d-grid div{background:var(--soft2);border:1px solid var(--line);border-radius:12px;padding:9px 11px}
+.d-grid b{display:block;font-size:18px;font-weight:650;margin-top:2px}
+.d-grid small{font-size:12px;font-weight:400;color:var(--sub)}
 
 /* chat */
 #chat{flex:1;overflow-y:auto;padding:8px 12px 12px;-webkit-overflow-scrolling:touch}
@@ -59,10 +62,16 @@ header h1 small{display:block;font-size:12px;font-weight:450;color:var(--sub);ma
 .bot .bubble{background:var(--soft);border-bottom-left-radius:5px}
 .time{font-size:10.5px;color:var(--faint);align-self:flex-end;margin:0 5px 2px}
 .rec{margin-top:8px;padding-top:8px;border-top:1px solid #d9e2ea;font-size:13px}
-.rec div{display:flex;gap:6px;justify-content:space-between;padding:1px 0}
+.rec-item{padding:2px 0}
+.rec-row{display:flex;gap:8px;align-items:baseline}
+.rec-row .rn{flex:1;min-width:0}
+.rec-row .rk{white-space:nowrap;flex:none}
+.rec-m{font-size:12px;color:var(--sub);padding-left:2px}
 .rec em{font-style:normal;color:var(--sub);font-size:12px}
 .tag{font-size:11px;color:var(--blue);border:1px solid #c9d6e2;border-radius:6px;padding:0 5px;margin-right:4px}
 .status{margin-top:6px;font-size:12px;color:var(--sub)}
+.retry{display:block;margin-top:8px;padding:6px 12px;border-radius:14px;background:#fff;color:var(--blue);border:1px solid #c9d6e2;font-size:13px}
+.retry:active{background:var(--soft)}
 .day-sep{text-align:center;font-size:11.5px;color:var(--faint);margin:14px 0 6px}
 .typing span{display:inline-block;width:6px;height:6px;margin:0 2px;border-radius:50%;background:var(--blue2);animation:b 1s infinite}
 .typing span:nth-child(2){animation-delay:.15s}.typing span:nth-child(3){animation-delay:.3s}
@@ -115,7 +124,7 @@ table.hist th:first-child,table.hist td:first-child{text-align:left}
 </head>
 <body>
 <header>
-  <h1>식단 노트<small id="dayLabel">&nbsp;</small></h1>
+  <h1><span id="appName">식단 노트</span><small id="dayLabel">&nbsp;</small></h1>
   <button class="icon-btn" id="btnExcel" aria-label="엑셀 다운로드" title="엑셀 다운로드">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
   </button>
@@ -160,25 +169,30 @@ table.hist th:first-child,table.hist td:first-child{text-align:left}
     <div class="sheet-h"><h2>설정</h2><button class="icon-btn" data-close aria-label="닫기">✕</button></div>
     <div class="sheet-b">
       <div class="sec">내 정보 · 목표</div>
-      <div class="field"><label for="f_age">나이</label><input id="f_age" type="number" inputmode="numeric"><span class="unit">세</span></div>
+      <div class="field"><label for="f_birth">생년월일</label><input id="f_birth" type="text" inputmode="numeric" placeholder="1988-03-15" class="sel"><span class="unit" id="ageNow"></span></div>
       <div class="field"><label for="f_sex">성별</label><select id="f_sex"><option value="">선택</option><option value="male">남성</option><option value="female">여성</option></select></div>
-      <div class="field"><label for="f_height">키</label><input id="f_height" type="number" inputmode="decimal" step="0.1"><span class="unit">cm</span></div>
-      <div class="field"><label for="f_weight">몸무게</label><input id="f_weight" type="number" inputmode="decimal" step="0.1"><span class="unit">kg</span></div>
-      <div class="field"><label for="f_tk">목표 섭취칼로리</label><input id="f_tk" type="number" inputmode="numeric"><span class="unit">kcal</span></div>
-      <div class="field"><label for="f_tp">목표 단백질</label><input id="f_tp" type="number" inputmode="numeric"><span class="unit">g</span></div>
+      <div class="field"><label for="f_height">키</label><input id="f_height" type="text" inputmode="decimal" class="sel"><span class="unit">cm</span></div>
+      <div class="field"><label for="f_weight">몸무게</label><input id="f_weight" type="text" inputmode="decimal" class="sel"><span class="unit">kg</span></div>
+      <div class="field"><label for="f_tk">목표 섭취칼로리</label><input id="f_tk" type="text" inputmode="numeric" class="sel"><span class="unit">kcal</span></div>
+      <div class="field"><label for="f_tp">목표 단백질</label><input id="f_tp" type="text" inputmode="numeric" class="sel"><span class="unit">g</span></div>
       <button class="btn" id="saveProfile">저장</button>
 
       <div class="sec">AI (Google Gemini)</div>
-      <div class="field"><label for="f_key">API 키</label><input id="f_key" type="password" placeholder="AIza…" autocomplete="off"></div>
-      <div class="field"><label for="f_model">모델</label><input id="f_model" type="text" placeholder="gemini-flash-latest"></div>
+      <div class="field"><label for="f_key">API 키</label><input id="f_key" type="password" placeholder="AIza…" autocomplete="off" class="sel"></div>
+      <div class="field"><label for="f_model">모델</label><input id="f_model" type="text" placeholder="gemini-flash-latest" class="sel"></div>
       <p class="hint">키는 aistudio.google.com 에서 무료로 발급받을 수 있어요. 키는 이 기기에만 저장됩니다.</p>
       <button class="btn ghost" id="saveAI">AI 설정 저장</button>
 
       <div class="sec">걸음수 자동 가져오기</div>
-      <p class="hint">아이폰 단축어가 매시간 오늘 누적 걸음수를 아래 주소로 보내면, 앱을 열 때와 켜져 있는 동안 1시간마다 자동으로 가져와 활동 칼로리를 계산합니다. 보낸 값은 12시간 동안 보관되니 하루 한 번은 앱을 열어 주세요.</p>
+      <p class="hint">아이폰 단축어가 걸음수를 아래 주소로 보내면, 앱을 열 때·돌아올 때·켜져 있는 동안 1시간마다 가져와 활동 칼로리를 계산합니다. 하루는 새벽 4시 기준이에요. 단축어는 "오늘 4시 이후 걸음_어제 4시~오늘 4시 걸음" 두 숫자를 밑줄(_)로 이어 보내면 되고, 예전처럼 숫자 하나(오늘 0시 이후 누적)만 보내도 됩니다. 보낸 값은 12시간 보관돼요.</p>
       <div class="code" id="stepUrl"></div>
       <div class="row2"><button class="btn ghost" id="copyStepUrl">주소 복사</button><button class="btn ghost" id="syncNow">지금 가져오기</button></div>
       <p class="hint" id="syncInfo"></p>
+
+      <div class="sec">앱</div>
+      <div class="field"><label for="f_appname">앱 이름</label><input id="f_appname" type="text" placeholder="식단 노트" class="sel"></div>
+      <button class="btn ghost" id="saveName">이름 저장</button>
+      <p class="hint">앱 안의 제목이 바뀝니다. 홈 화면 아이콘 이름은 아이폰이 처음 추가할 때 정해져서 여기서 바뀌지 않아요.</p>
 
       <div class="sec">데이터</div>
       <div class="row2"><button class="btn ghost" id="exportJson">백업 저장</button><button class="btn ghost" id="importJson">백업 불러오기</button></div>
@@ -221,13 +235,26 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6
 function toast(t){ const el=$('#toast'); el.textContent=t; el.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>el.classList.remove('show'),2200); }
 
 /* ============ 계산 ============ */
-const profileReady = () => { const p=S.profile; return p.age && p.height && p.weight && p.sex && p.targetKcal && p.targetProtein; };
+// 생년월일 → 만 나이 (생일이 지나면 자동으로 한 살 올라감)
+function parseBirth(str){
+  if (!str) return null; const t=String(str).trim(); let y,mo,d,m;
+  if ((m=t.match(/((?:19|20)\d{2})\s*[.\-/년]\s*(\d{1,2})\s*[.\-/월]\s*(\d{1,2})/))) { y=+m[1]; mo=+m[2]; d=+m[3]; }
+  else if ((m=t.match(/(?:^|[^\d])((?:19|20)\d{2})(\d{2})(\d{2})(?:[^\d]|$)/))) { y=+m[1]; mo=+m[2]; d=+m[3]; }
+  else if ((m=t.match(/(?:^|[^\d])(\d{2})(\d{2})(\d{2})(?:[^\d]|$)/))) { const yy=+m[1], cy=new Date().getFullYear()%100; y = yy>cy ? 1900+yy : 2000+yy; mo=+m[2]; d=+m[3]; }
+  else return null;
+  const dt=new Date(y,mo-1,d); if (dt.getMonth()!==mo-1 || dt.getDate()!==d || y<1900 || dt>new Date()) return null;
+  return `${y}-${pad(mo)}-${pad(d)}`;
+}
+function ageOf(birth, at=Date.now()){ const [y,m,d]=birth.split('-').map(Number); const n=new Date(at);
+  let a=n.getFullYear()-y; if (n.getMonth()+1<m || (n.getMonth()+1===m && n.getDate()<d)) a--; return a; }
+const curAge = () => S.profile.birth ? ageOf(S.profile.birth) : S.profile.age;
+const profileReady = () => { const p=S.profile; return (p.birth||p.age) && p.height && p.weight && p.sex && p.targetKcal && p.targetProtein; };
 const missingFields = () => { const p=S.profile, m=[];
-  if(!p.age)m.push('나이'); if(!p.sex)m.push('성별'); if(!p.height)m.push('키'); if(!p.weight)m.push('몸무게');
+  if(!(p.birth||p.age))m.push('생년월일'); if(!p.sex)m.push('성별'); if(!p.height)m.push('키'); if(!p.weight)m.push('몸무게');
   if(!p.targetKcal)m.push('목표 섭취칼로리'); if(!p.targetProtein)m.push('목표 단백질'); return m; };
 // Mifflin-St Jeor
-function calcBMR(w){ const p=S.profile; w = w || p.weight; if(!w||!p.height||!p.age||!p.sex) return null;
-  return Math.round(10*w + 6.25*p.height - 5*p.age + (p.sex==='female' ? -161 : 5)); }
+function calcBMR(w){ const p=S.profile, age=curAge(); w = w || p.weight; if(!w||!p.height||!age||!p.sex) return null;
+  return Math.round(10*w + 6.25*p.height - 5*age + (p.sex==='female' ? -161 : 5)); }
 // 걸음 → 순(net) 활동 칼로리: 보폭 = 키×0.415, 걷기 순소모 ≈ 0.5 kcal/kg/km
 const kcalPerStep = w => { const p=S.profile; if(!p.height) return 0; return (p.height*0.415/100/1000) * (w||p.weight||0) * 0.5; };
 
@@ -235,11 +262,18 @@ const sortedIds = () => Object.keys(S.days).sort();
 function dayStart(d){ const [y,m,dd]=d.id.split('-').map(Number); return Math.min(d.wakeAt, new Date(y,m-1,dd,NEW_DAY_HOUR).getTime()); }
 function nextDay(d){ const ids=sortedIds(); const i=ids.indexOf(d.id); return i>=0 && i<ids.length-1 ? S.days[ids[i+1]] : null; }
 function prevDay(d){ const ids=sortedIds(); const i=ids.indexOf(d.id); return i>0 ? S.days[ids[i-1]] : null; }
-// 하루 걸음 = Σ(달력일별) [그 날 범위 안 최대 누적값 − 그 날 시작 전 같은 달력일 최대 누적값]
+// 하루 걸음
+// 1) 새벽 4시 기준 값(kind L: 단축어 두 숫자, 채팅 입력)이 있으면 그 날 값 중 최대
+// 2) 없으면 예전 방식(0시 누적값): Σ(달력일별)[범위 안 최대 − 범위 전 같은 달력일 최대]
 function stepsForDay(d){
+  let lmax=-1; for (const s of S.steps) if (s.kind==='L' && s.day===d.id) lmax=Math.max(lmax, s.count);
+  if (lmax>=0) return lmax;
+  return stepsCalendar(d);
+}
+function stepsCalendar(d){
   const st=dayStart(d), nx=nextDay(d), en = nx ? dayStart(nx) : Infinity;
   const inMax={}, preMax={};
-  for (const s of S.steps){ const c=ymd(s.t);
+  for (const s of S.steps){ if (s.kind==='L') continue; const c=ymd(s.t);
     if (s.t>=st && s.t<en) inMax[c]=Math.max(inMax[c]||0, s.count);
     else if (s.t<st) preMax[c]=Math.max(preMax[c]||0, s.count); }
   let tot=0; for (const c in inMax) tot += Math.max(0, inMax[c]-(preMax[c]||0)); return tot;
@@ -319,13 +353,21 @@ function setMorningWeight(kg){
   return t;
 }
 function setBodyFat(v){ const d=ensureDay(); d.bodyFat=r1(v); return `체지방률 ${d.bodyFat}% 기록했어요.`; }
-function addSteps(count, t=Date.now(), id){ count=Math.round(count); if(!(count>=0)) return;
-  if (id && S.steps.some(s=>s.id===id)) return; S.steps.push({t, count, id:id||uid()}); S.steps.sort((a,b)=>a.t-b.t);
+function addSteps(count, t=Date.now(), id, kind, day){ count=Math.round(count); if(!(count>=0)) return;
+  if (id && S.steps.some(s=>s.id===id)) return;
+  const x={t, count, id:id||uid()}; if (kind==='L') { x.kind='L'; x.day=day; }
+  S.steps.push(x); S.steps.sort((a,b)=>a.t-b.t);
   if (S.steps.length>5000) S.steps = S.steps.slice(-5000); }
+const prevDate = id => { const [y,m,d]=id.split('-').map(Number); return ymd(new Date(y,m-1,d-1,12)); };
+// 직접 입력한 걸음수: 오늘(새벽 4시 기준) 값으로 기록
+function addStepsManual(count){ const d=ensureDay(); addSteps(count, Date.now(), null, 'L', d? d.id : logicalDate(Date.now())); }
 function setProfile(o){
   const p=S.profile, ch=[];
   const set=(k,v,label,unit)=>{ if(v==null||v===''||isNaN(v)&&k!=='sex') return; p[k]= k==='sex'?v:Number(v); ch.push(`${label} ${k==='sex'?(v==='female'?'여성':'남성'):N(v,1)}${unit}`); };
-  set('age',o.age,'나이','세'); if(o.sex) set('sex',o.sex,'성별',''); set('height',o.height,'키','cm'); set('weight',o.weight,'몸무게','kg');
+  const b=parseBirth(o.birth);
+  if (b) { p.birth=b; delete p.age; ch.push(`생년월일 ${b} (만 ${ageOf(b)}세)`); }
+  else if (!p.birth) set('age',o.age,'나이','세');
+  if(o.sex) set('sex',o.sex,'성별',''); set('height',o.height,'키','cm'); set('weight',o.weight,'몸무게','kg');
   set('targetKcal',o.targetKcal,'목표 섭취','kcal'); set('targetProtein',o.targetProtein,'목표 단백질','g');
   const cur = S.cur && S.days[S.cur];
   if (cur) { cur.targetKcal=p.targetKcal; cur.targetProtein=p.targetProtein; cur.bmr = calcBMR(cur.weightAM || p.weight); }
@@ -359,36 +401,46 @@ function parseQuick(text){
 }
 function parseProfile(text){
   const t=text, o={}; let m;
-  if ((m=t.match(/(나이|만)\s*[:은는]?\s*(\d{1,2})/)) || (m=t.match(/(^|[^\d])(\d{1,2})\s*(세|살)/))) o.age=+m[2];
-  if ((m=t.match(/(키|신장)\s*[:은는]?\s*(\d{3}(?:\.\d+)?)/)) || (m=t.match(/(^|[^\d.])(\d{3}(?:\.\d+)?)\s*cm/i))) o.height=+m[2];
-  if ((m=t.match(/(몸무게|체중)\s*[:은는]?\s*(\d{2,3}(?:\.\d+)?)/)) || (m=t.match(/(^|[^\d.])(\d{2,3}(?:\.\d+)?)\s*(kg|킬로)/i))) o.weight=+m[2];
-  if (/(^|[\s,/])(남|남자|남성)(?=[\s,/]|$)/.test(t) || /male/i.test(t) && !/female/i.test(t)) o.sex='male';
-  if (/(^|[\s,/])(여|여자|여성)(?=[\s,/]|$)/.test(t) || /female/i.test(t)) o.sex='female';
-  if ((m=t.match(/(목표|섭취)\s*(섭취)?\s*(칼로리|열량)?\s*[:은는]?\s*(\d{3,4})/)) || (m=t.match(/(^|[^\d])(\d{3,4})\s*(kcal|칼로리)/i))) o.targetKcal=+(m[4]||m[2]);
-  if ((m=t.match(/단백질\s*[:은는]?\s*(\d{2,3})/))) o.targetProtein=+m[1];
+  if ((m=t.match(/(생년월일|생일|출생)\s*[:은는]?\s*([\d.\-/년월일\s]{6,14})/)) && parseBirth(m[2])) o.birth=parseBirth(m[2]);
+  else if ((m=t.match(/(?:19|20)\d{2}\s*[.\-/년]\s*\d{1,2}\s*[.\-/월]\s*\d{1,2}/)) && parseBirth(m[0])) o.birth=parseBirth(m[0]);
+  if (!o.birth && ((m=t.match(/(나이|만)\s*[:은는]?\s*(\d{1,2})/)) || (m=t.match(/(^|[^\d])(\d{1,2})\s*(세|살)/)))) o.age=+m[2];
+  const t2 = o.birth ? t.replace(/(생년월일|생일|출생)?\s*[:은는]?\s*(?:19|20)\d{2}\s*[.\-/년]?\s*\d{1,2}\s*[.\-/월]?\s*\d{1,2}\s*일?/, ' ') : t;
+  if ((m=t2.match(/(키|신장)\s*[:은는]?\s*(\d{3}(?:\.\d+)?)/)) || (m=t2.match(/(^|[^\d.])(\d{3}(?:\.\d+)?)\s*cm/i))) o.height=+m[2];
+  if ((m=t2.match(/(몸무게|체중)\s*[:은는]?\s*(\d{2,3}(?:\.\d+)?)/)) || (m=t2.match(/(^|[^\d.])(\d{2,3}(?:\.\d+)?)\s*(kg|킬로)/i))) o.weight=+m[2];
+  if (/(^|[\s,/])(남|남자|남성)(?=[\s,/]|$)/.test(t2) || /male/i.test(t2) && !/female/i.test(t2)) o.sex='male';
+  if (/(^|[\s,/])(여|여자|여성)(?=[\s,/]|$)/.test(t2) || /female/i.test(t2)) o.sex='female';
+  if ((m=t2.match(/(목표|섭취)\s*(섭취)?\s*(칼로리|열량)?\s*[:은는]?\s*(\d{3,4})/)) || (m=t2.match(/(^|[^\d])(\d{3,4})\s*(kcal|칼로리)/i))) o.targetKcal=+(m[4]||m[2]);
+  if ((m=t2.match(/단백질\s*[:은는]?\s*(\d{2,3})/))) o.targetProtein=+m[1];
   return Object.keys(o).length ? o : null;
 }
 
 /* ============ Gemini ============ */
+// 음식·운동은 칼로리가 반드시 채워지도록 배열을 분리하고 필드를 필수로 지정
 const SCHEMA = {
   type:'OBJECT',
   properties:{
     reply:{type:'STRING'},
-    actions:{type:'ARRAY', items:{type:'OBJECT', properties:{
-      type:{type:'STRING', enum:['food','exercise','profile','weight','bodyfat','steps','wake','sleep','undo']},
-      name:{type:'STRING'}, amount:{type:'STRING'},
-      kcal:{type:'NUMBER'}, carb:{type:'NUMBER'}, protein:{type:'NUMBER'}, fat:{type:'NUMBER'},
+    foods:{type:'ARRAY', items:{type:'OBJECT', properties:{
+      name:{type:'STRING'}, amount:{type:'STRING'}, kcal:{type:'NUMBER'}, carb:{type:'NUMBER'}, protein:{type:'NUMBER'}, fat:{type:'NUMBER'}
+    }, required:['name','amount','kcal','carb','protein','fat']}},
+    exercises:{type:'ARRAY', items:{type:'OBJECT', properties:{
+      name:{type:'STRING'}, amount:{type:'STRING'}, kcal:{type:'NUMBER'}
+    }, required:['name','amount','kcal']}},
+    others:{type:'ARRAY', items:{type:'OBJECT', properties:{
+      type:{type:'STRING', enum:['profile','weight','bodyfat','steps','wake','sleep','undo']},
       value:{type:'NUMBER'}, target:{type:'STRING'},
-      age:{type:'NUMBER'}, height:{type:'NUMBER'}, weight:{type:'NUMBER'}, sex:{type:'STRING', enum:['male','female']},
+      birth:{type:'STRING'}, age:{type:'NUMBER'}, height:{type:'NUMBER'}, weight:{type:'NUMBER'}, sex:{type:'STRING', enum:['male','female']},
       target_kcal:{type:'NUMBER'}, target_protein:{type:'NUMBER'}
     }, required:['type']}}
   },
-  required:['reply','actions']
+  required:['reply','foods','exercises','others']
 };
+// "420kcal", "약 420" 같은 문자열도 숫자로
+const num = v => { if (typeof v==='number' && isFinite(v)) return v; const m=String(v??'').replace(/,/g,'').match(/-?\d+(\.\d+)?/); return m?parseFloat(m[0]):NaN; };
 function context(){
   const d = S.cur && S.days[S.cur]; const p=S.profile;
   const now=new Date();
-  const ctx = { 현재시각:`${ymd(now)} ${hm(now)}`, 프로필:{나이:p.age, 성별:p.sex==='female'?'여성':'남성', 키cm:p.height, 몸무게kg:p.weight, 목표섭취kcal:p.targetKcal, 목표단백질g:p.targetProtein} };
+  const ctx = { 현재시각:`${ymd(now)} ${hm(now)}`, 프로필:{만나이:curAge(), 생년월일:p.birth, 성별:p.sex==='female'?'여성':'남성', 키cm:p.height, 몸무게kg:p.weight, 목표섭취kcal:p.targetKcal, 목표단백질g:p.targetProtein} };
   if (d) { const s=summarize(d);
     ctx.오늘 = { 날짜:d.id, 기상:hm(d.wakeAt), 공복체중:d.weightAM, 체지방률:d.bodyFat,
       기초대사량kcal:s.bmr, 누적걸음:s.steps, 걸음소모kcal:s.stepKcal, 걸음당kcal:Math.round(kcalPerStep(s.weight)*1000)/1000,
@@ -405,15 +457,15 @@ function systemPrompt(){
   return `너는 1인용 다이어트 식단관리 앱 "식단 노트"의 기록 도우미다. 사용자의 채팅 메시지를 읽고 지정된 JSON으로만 응답한다.
 
 [기록 규칙 — 가장 중요]
-- "먹었다/먹었어/먹음/마셨다/했다/했어/하고 왔어/다녀왔다/기록해/추가해/넣어줘"처럼 이미 수행했거나 기록을 명시적으로 요청한 것만 actions에 넣는다.
-- "먹으면?", "먹어도 돼?", "얼마야?", "어때?", "할까?", "~하려고" 같은 질문·가정·계획은 절대 기록하지 않는다. actions는 빈 배열, reply로만 답한다.
+- "먹었다/먹었어/먹음/마셨다/했다/했어/하고 왔어/다녀왔다/기록해/추가해/넣어줘"처럼 이미 수행했거나 기록을 명시적으로 요청한 것만 기록한다.
+- "먹으면?", "먹어도 돼?", "얼마야?", "어때?", "할까?", "~하려고" 같은 질문·가정·계획은 절대 기록하지 않는다. foods·exercises·others는 빈 배열, reply로만 답한다.
 - 애매하면 기록하지 말고 reply에서 "기록할까요?"라고 묻는다.
+- 실제 기록은 오직 foods·exercises·others 배열에 넣은 것만 저장된다. reply에 "기록했어요"라고 썼다면 같은 항목이 반드시 배열에 들어 있어야 하고, reply에 쓴 칼로리 숫자와 배열의 kcal 숫자가 같아야 한다.
 
-[action 작성법]
-- food: 음식 하나당 하나. name(음식명), amount(양 표기), kcal, carb, protein, fat(g, 소수 1자리). 한국 식당·가정식 일반 1인분 또는 사용자가 말한 중량 기준으로 현실적으로 추정한다. 조리법이 불분명하면 흔한 방식으로 가정하고 reply에 짧게 밝힌다.
-- exercise: 운동이나 일상 걸음 외의 특별한 신체활동. name, amount(시간/세트 등), kcal = 사용자 체중 기준 MET로 계산한 소모량에서 같은 시간의 기초대사량분을 뺀 순증가분. 걷기·산책은 걸음수로 이미 계산되므로 기록하지 말고 그렇게 안내한다. 달리기·등산처럼 걸음수에 잡히는 운동은 (예상 걸음 × 걸음당kcal)을 뺀 추가분만 넣는다.
-- weight(value=kg, 공복 몸무게), bodyfat(value=%), steps(value=오늘 누적 걸음수), wake(기상), sleep(취침), undo(방금 기록 취소, target=food|exercise|빈값).
-- profile: 나이·키·몸무게·성별·목표섭취칼로리·목표단백질을 바꾸라고 할 때. 바뀌는 항목만 채운다(target_kcal, target_protein 사용).
+[배열 작성법]
+- foods: 음식 하나당 하나. name(음식명), amount(양 표기), kcal, carb, protein, fat(g, 소수 1자리). 모두 숫자. 한국 식당·가정식 일반 1인분 또는 사용자가 말한 중량 기준으로 현실적으로 추정한다. 조리법이 불분명하면 흔한 방식으로 가정하고 reply에 짧게 밝힌다.
+- exercises: 운동이나 일상 걸음 외의 특별한 신체활동. name, amount(시간/세트 등, 모르면 일반적인 1회 기준으로 가정), kcal(숫자, 0 금지) = 사용자 체중 기준 MET로 계산한 소모량에서 같은 시간의 기초대사량분을 뺀 순증가분. 걷기·산책은 걸음수로 이미 계산되므로 기록하지 말고 그렇게 안내한다. 달리기·등산처럼 걸음수에 잡히는 운동은 (예상 걸음 × 걸음당kcal)을 뺀 추가분만 넣는다.
+- others: type=weight(value=kg, 공복 몸무게), bodyfat(value=%), steps(value=오늘 누적 걸음수), wake(기상), sleep(취침), undo(방금 기록 취소, target=food|exercise|빈값), profile(생년월일·키·몸무게·성별·목표섭취칼로리·목표단백질 변경 요청 시 바뀌는 항목만, birth는 YYYY-MM-DD, target_kcal·target_protein 사용).
 
 [reply 작성법]
 - 한국어 존댓말, 짧고 명확하게(보통 1~3문장). 이모지 금지.
@@ -425,45 +477,88 @@ function systemPrompt(){
 [현황 데이터]
 ${JSON.stringify(context())}`;
 }
-async function askGemini(userText){
-  const key=S.settings.apiKey, model=(S.settings.model||DEFAULT_MODEL).trim();
+const FALLBACK_MODEL = 'gemini-flash-lite-latest';
+const TIMEOUT_MS = 45000;
+const sleepMs = ms => new Promise(r=>setTimeout(r,ms));
+class AIError extends Error { constructor(msg, retryable){ super(msg); this.retryable=retryable; } }
+// 503/500 등 서버 혼잡은 잠시 뒤 자동 재시도 → 그래도 안 되면 가벼운 모델로 한 번 더
+async function askGeminiRobust(userText, note){
+  const main=(S.settings.model||DEFAULT_MODEL).trim();
+  const plan=[[main,0],[main,2000],[main,5000]]; if (main!==FALLBACK_MODEL) plan.push([FALLBACK_MODEL,1000]);
+  let last;
+  for (const [model,wait] of plan){
+    if (wait) await sleepMs(wait);
+    try { return await askGemini(userText, note, model); }
+    catch(e){ last=e; if (!e.retryable) throw e; }
+  }
+  throw last;
+}
+async function askGemini(userText, note, modelOverride){
+  const key=S.settings.apiKey, model=(modelOverride||S.settings.model||DEFAULT_MODEL).trim();
   const hist=[];
   for (const m of S.chat.slice(-14)) { if (m.sys) continue;
     const role = m.role==='user'?'user':'model'; const text = m.role==='user'? m.text : (m.text + (m.recText?'\n'+m.recText:''));
     if (hist.length && hist[hist.length-1].role===role) hist[hist.length-1].parts[0].text += '\n'+text; else hist.push({role, parts:[{text}]}); }
   while (hist.length && hist[0].role!=='user') hist.shift();
   if (!hist.length || hist[hist.length-1].role!=='user') hist.push({role:'user', parts:[{text:userText}]});
+  if (note) hist[hist.length-1].parts[0].text += '\n\n[앱 알림] ' + note;
   const body = { systemInstruction:{parts:[{text:systemPrompt()}]}, contents:hist,
     generationConfig:{ responseMimeType:'application/json', responseSchema:SCHEMA } };
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`,
-    { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+  const ctl = new AbortController(); const timer = setTimeout(()=>ctl.abort(), TIMEOUT_MS);
+  let res;
+  try {
+    res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`,
+      { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body), signal:ctl.signal });
+  } catch(e) {
+    clearTimeout(timer);
+    if (e.name==='AbortError') throw new AIError('AI 응답이 너무 늦어 중단했어요.', false);
+    throw new AIError('인터넷 연결을 확인해 주세요. AI에 연결하지 못했어요.', false);
+  }
+  clearTimeout(timer);
   const data = await res.json().catch(()=>({}));
   if (!res.ok) { const msg = data.error && data.error.message || res.statusText;
-    if (res.status===400 && /API key/i.test(msg)) throw new Error('API 키가 올바르지 않아요. 설정에서 확인해 주세요.');
-    if (res.status===429) throw new Error('Gemini 사용 한도를 넘었어요. 잠시 후 다시 시도해 주세요.');
-    if (res.status===404) throw new Error(`모델 "${model}"을 찾을 수 없어요. 설정에서 모델명을 확인해 주세요.`);
-    throw new Error(`Gemini 오류 (${res.status}): ${msg}`); }
+    if (res.status===400 && /API key/i.test(msg)) throw new AIError('API 키가 올바르지 않아요. 설정에서 확인해 주세요.', false);
+    if (res.status===429) throw new AIError('Gemini 사용 한도를 넘었어요. 잠시 후 다시 시도해 주세요.', false);
+    if (res.status===404) throw new AIError(`모델 "${model}"을 찾을 수 없어요. 설정에서 모델명을 확인해 주세요.`, false);
+    if (res.status>=500) throw new AIError('Gemini 서버가 혼잡해요. 잠시 후 다시 보내 주세요.', true);
+    throw new AIError(`Gemini 오류 (${res.status}): ${msg}`, false); }
   const parts = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) || [];
   const raw = parts.filter(p=>!p.thought && p.text).map(p=>p.text).join('').trim();
-  try { const j = JSON.parse(raw.replace(/^```(json)?|```$/g,'')); return { reply:String(j.reply||''), actions:Array.isArray(j.actions)?j.actions:[] }; }
-  catch(e) { return { reply: raw || '응답을 이해하지 못했어요. 다시 말씀해 주세요.', actions:[] }; }
+  let j; try { j = JSON.parse(raw.replace(/^```(json)?|```$/g,'')); } catch(e) { return { reply: raw || '응답을 이해하지 못했어요. 다시 말씀해 주세요.', actions:[] }; }
+  const arr = v => Array.isArray(v) ? v : [];
+  const actions = [
+    ...arr(j.foods).map(f=>({...f, type:'food'})),
+    ...arr(j.exercises).map(x=>({...x, type:'exercise'})),
+    ...arr(j.others),
+    ...arr(j.actions)                      // 예전 형식 응답도 허용
+  ];
+  return { reply:String(j.reply||''), actions };
+}
+// 답변과 기록이 어긋났는지 검사: 기록했다고 말했는데 항목이 없거나, 칼로리가 비어 있음
+function recordProblem(r){
+  const items = r.actions.filter(a=>a.type==='food'||a.type==='exercise');
+  if (items.some(a=>!(num(a.kcal)>0) && !(num(a.value)>0) && !/물|water|블랙커피|아메리카노|제로/i.test(a.name||''))) return 'kcal';
+  if (!r.actions.length && /기록(했|하였|해 ?(두|드)|완료|됐|되었)/.test(r.reply)) return 'missing';
+  return null;
 }
 function applyActions(actions){
   const recs=[], notes=[]; let touched=false;
   for (const a of actions){
     const t=Date.now();
     switch(a.type){
-      case 'food': { const d=ensureDay(); const x={id:uid(), t, name:a.name||'음식', amount:a.amount||'', kcal:Math.round(+a.kcal||0), carb:r1(+a.carb||0), protein:r1(+a.protein||0), fat:r1(+a.fat||0)};
+      case 'food': { const d=ensureDay(); const k=num(a.kcal)>0?num(a.kcal):(num(a.value)||0);
+        const x={id:uid(), t, name:a.name||'음식', amount:a.amount||'', kcal:Math.round(k), carb:r1(num(a.carb)||0), protein:r1(num(a.protein)||0), fat:r1(num(a.fat)||0)};
         d.foods.push(x); recs.push({k:'섭취', ...x}); touched=true; break; }
-      case 'exercise': { const d=ensureDay(); const x={id:uid(), t, name:a.name||'운동', amount:a.amount||'', kcal:Math.round(+a.kcal||0)};
+      case 'exercise': { const d=ensureDay(); const k=num(a.kcal)>0?num(a.kcal):(num(a.value)||0);
+        const x={id:uid(), t, name:a.name||'운동', amount:a.amount||'', kcal:Math.round(k)};
         d.exercises.push(x); recs.push({k:'운동', ...x}); touched=true; break; }
-      case 'weight': if (a.value>20) { notes.push(setMorningWeight(+a.value)); touched=true; } break;
-      case 'bodyfat': if (a.value>0) { notes.push(setBodyFat(+a.value)); touched=true; } break;
-      case 'steps': if (a.value>=0) { addSteps(+a.value); notes.push(`걸음수 ${N(a.value)}보 반영했어요.`); touched=true; } break;
+      case 'weight': if (num(a.value)>20) { notes.push(setMorningWeight(num(a.value))); touched=true; } break;
+      case 'bodyfat': if (num(a.value)>0) { notes.push(setBodyFat(num(a.value))); touched=true; } break;
+      case 'steps': if (num(a.value)>=0) { addStepsManual(num(a.value)); notes.push(`걸음수 ${N(num(a.value))}보 반영했어요.`); touched=true; } break;
       case 'wake': notes.push(wakeUp().text); break;
       case 'sleep': notes.push(goSleep().text); break;
       case 'undo': notes.push(undoLast(a.target)); touched=true; break;
-      case 'profile': { const ch=setProfile({age:a.age,height:a.height,weight:a.weight,sex:a.sex,targetKcal:a.target_kcal,targetProtein:a.target_protein});
+      case 'profile': { const ch=setProfile({birth:a.birth,age:a.age,height:a.height,weight:a.weight,sex:a.sex,targetKcal:a.target_kcal,targetProtein:a.target_protein});
         if (ch.length) notes.push('변경: '+ch.join(', ')); break; }
     }
   }
@@ -484,7 +579,7 @@ async function handle(text){
     if (o) { setProfile(o); }
     else if (S.settings.apiKey) { await runAI(text); return; }
     const miss=missingFields();
-    if (miss.length) { addMsg('bot', (o?'확인했어요. ':'') + `아직 ${miss.join(', ')} 정보가 필요해요.\n예) 나이 38, 남성, 키 175, 몸무게 78, 목표 1800kcal, 단백질 120g`); return; }
+    if (miss.length) { addMsg('bot', (o?'확인했어요. ':'') + `아직 ${miss.join(', ')} 정보가 필요해요.\n예) 생년월일 1988-03-15, 남성, 키 175, 몸무게 78, 목표 1800kcal, 단백질 120g`); return; }
     const d = ensureDay();
     addMsg('bot', `설정 완료!\n추정 기초대사량 ${N(d.bmr)} kcal (Mifflin-St Jeor 공식)\n목표 섭취 ${N(S.profile.targetKcal)} kcal · 단백질 ${N(S.profile.targetProtein)} g\n\n이제 먹은 음식, 운동, 궁금한 점을 자유롭게 적어주세요.` + (S.settings.apiKey?'':'\n(음식·운동 칼로리 추정은 설정에서 Gemini API 키를 넣으면 켜져요.)'));
     return;
@@ -499,7 +594,7 @@ async function handle(text){
     if (q.undo) out.push(undoLast());
     if (q.weight) out.push(setMorningWeight(q.weight));
     if (q.bodyFat) out.push(setBodyFat(q.bodyFat));
-    if (q.steps!=null) { addSteps(q.steps); out.push(`걸음수 ${N(q.steps)}보 반영했어요.`); }
+    if (q.steps!=null) { addStepsManual(q.steps); out.push(`걸음수 ${N(q.steps)}보 반영했어요.`); }
     const st = (q.undo||q.steps!=null) ? statusLine() : '';
     addMsg('bot', out.join('\n'), st?{status:st}:{}); render(); return;
   }
@@ -509,44 +604,64 @@ async function handle(text){
 async function runAI(text){
   busy=true; $('#send').disabled=true; showTyping(true);
   try {
-    const r = await askGemini(text);
+    let r = await askGeminiRobust(text);
+    // 답변과 실제 기록 데이터가 어긋나면 한 번 더 요청해서 바로잡기
+    const prob = recordProblem(r);
+    if (prob) {
+      const note = prob==='kcal'
+        ? '직전 응답에서 foods/exercises 항목의 kcal이 비어 있거나 0이었다. 같은 내용을 kcal 숫자를 반드시 채워 다시 응답하라.'
+        : '직전 응답에서 reply에는 기록했다고 썼지만 foods/exercises/others 배열이 비어 있었다. 기록할 항목을 배열에 반드시 넣어 다시 응답하라.';
+      try { const r2 = await askGeminiRobust(text, note); if (!recordProblem(r2)) r = r2; else r = Object.assign(r2, {warn:true}); }
+      catch(_) { r.warn = true; }
+    }
+    if (r.warn || recordProblem(r)) {
+      // 그래도 어긋나면 잘못된 기록을 남기지 않고 알림
+      addMsg('bot', 'AI 답변과 기록 데이터가 맞지 않아 저장하지 않았어요. 다시 보내 주세요.\n(AI 답변: ' + (r.reply||'-') + ')', {sys:true, retry:text});
+      return;
+    }
     const {recs, notes, touched} = applyActions(r.actions);
     if (profileReady()) ensureDay();
     const recText = recs.map(x=>`[${x.k}] ${x.name} ${x.amount} ${x.kcal}kcal`).join('\n');
     let txt = r.reply; if (notes.length) txt += (txt?'\n':'') + notes.join('\n');
     addMsg('bot', txt || '기록했어요.', { recs: recs.length?recs:undefined, recText: recText||undefined, status: (recs.length||touched)?statusLine():undefined });
   } catch(e) {
-    addMsg('bot', (e && e.message && !/Failed to fetch|NetworkError|Load failed/i.test(e.message)) ? e.message : '인터넷 연결을 확인해 주세요. AI에 연결하지 못했어요.', {sys:true});
+    addMsg('bot', (e && e.message) || 'AI에 연결하지 못했어요.', {sys:true, retry:text});
   } finally { busy=false; $('#send').disabled=false; showTyping(false); render(); }
 }
+// 오류 메시지의 "다시 보내기" 버튼
+$('#chat').addEventListener('click', e=>{
+  const b=e.target.closest('[data-retry]'); if(!b || busy) return;
+  const m=S.chat[+b.dataset.retry]; if(!m || !m.retry) return;
+  const text=m.retry; delete m.retry; save(); runAI(text);
+});
 
 /* ============ 렌더 ============ */
 function renderSummary(){
   const el=$('#summary'); const d=S.cur&&S.days[S.cur];
   if (!d) { $('#dayLabel').textContent = profileReady()? '' : '처음 설정이 필요해요';
-    el.innerHTML = `<div class="s-label">처음 오셨네요</div><div style="margin-top:4px;font-size:14px">채팅으로 나이·성별·키·몸무게·목표를 알려주세요.</div>`; return; }
+    el.innerHTML = `<div class="s-label">처음 오셨네요</div><div style="margin-top:4px;font-size:14px">채팅으로 생년월일·성별·키·몸무게·목표를 알려주세요.</div>`; return; }
   const s=summarize(d);
   $('#dayLabel').textContent = `${dayTitle(d.id)} · 기상 ${hm(d.wakeAt)}${d.sleepAt?' · 취침 '+hm(d.sleepAt):''}`;
   const pct = s.tk? Math.min(100, s.intake/s.tk*100) : 0, ppct = s.tp? Math.min(100, s.protein/s.tp*100):0;
-  el.innerHTML = `
-    <div class="s-top"><div><div class="s-label">섭취</div><div class="s-big num">${N(s.intake)} <span>/ ${N(s.tk)} kcal</span></div></div>
-      <div style="text-align:right"><div class="s-label">남은 칼로리</div><div class="s-big num ${s.remain<0?'pos':''}" style="font-size:18px">${N(s.remain)}</div></div></div>
-    <div class="bar ${s.intake>s.tk?'over':''}"><i style="width:${pct}%"></i></div>
-    <div class="s-grid">
-      <div><span class="s-label">소모</span><b class="num">${N(s.burn)}</b></div>
-      <div><span class="s-label">${s.surplus>=0?'잉여':'결핍'}</span><b class="num ${s.surplus>0?'pos':'neg'}">${sgn(s.surplus)}</b></div>
-      <div><span class="s-label">예상 체중</span><b class="num ${s.expKg>0?'pos':'neg'}">${sgn(s.expKg,2)}kg</b></div>
-    </div>
-    <div class="s-foot num"><span>단백질 <b>${N(s.protein,1)}</b>/${N(s.tp)}g</span><div class="bar pbar"><i style="width:${ppct}%"></i></div>
-      <span>탄 <b>${N(s.carb)}</b> 지 <b>${N(s.fat)}</b> · 걸음 <b>${N(s.steps)}</b></span></div>`;
+  const over = s.remain<0, pDone = s.protRemain<=0;
+  el.innerHTML = `<div class="tiles num">
+    <div class="tile ${over?'over':''}"><div class="lab">${over?'초과 칼로리':'남은 칼로리'}</div>
+      <div class="big">${N(Math.abs(s.remain))}<small>kcal</small></div>
+      <div class="sub">${N(s.intake)} / ${N(s.tk)} 섭취</div><div class="tbar"><i style="width:${pct}%"></i></div></div>
+    <div class="tile"><div class="lab">${pDone?'단백질':'남은 단백질'}</div>
+      <div class="big">${pDone?'달성':N(s.protRemain)}${pDone?'':'<small>g</small>'}</div>
+      <div class="sub">${N(s.protein)} / ${N(s.tp)} 섭취</div><div class="tbar p"><i style="width:${ppct}%"></i></div></div>
+  </div>`;
 }
 function renderChat(){
   const box=$('#chat'); let html='', lastDay='';
-  for (const m of S.chat.slice(-150)){
+  const start=Math.max(0,S.chat.length-150);
+  for (let i=start;i<S.chat.length;i++){ const m=S.chat[i];
     const dd=ymd(m.t); if (dd!==lastDay){ html+=`<div class="day-sep">${dayTitle(dd)}</div>`; lastDay=dd; }
     let inner = esc(m.text);
-    if (m.recs) inner += `<div class="rec">` + m.recs.map(x=>`<div><span><span class="tag">${x.k}</span>${esc(x.name)} <em>${esc(x.amount||'')}</em></span><span class="num">${N(x.kcal)} kcal${x.k==='섭취'?`<em> · 탄${N(x.carb)} 단${N(x.protein)} 지${N(x.fat)}</em>`:''}</span></div>`).join('') + `</div>`;
+    if (m.recs) inner += `<div class="rec">` + m.recs.map(x=>`<div class="rec-item"><div class="rec-row"><span class="rn"><span class="tag">${x.k}</span>${esc(x.name)} <em>${esc(x.amount||'')}</em></span><span class="rk num">${N(x.kcal)} kcal</span></div>${x.k==='섭취'?`<div class="rec-m num">탄 ${N(x.carb,1)} · 단 ${N(x.protein,1)} · 지 ${N(x.fat,1)} g</div>`:''}</div>`).join('') + `</div>`;
     if (m.status) inner += `<div class="status num">${esc(m.status)}</div>`;
+    if (m.retry && i===S.chat.length-1) inner += `<button class="retry" data-retry="${i}">다시 보내기</button>`;
     html += m.role==='user'
       ? `<div class="msg user"><span class="time">${hm(m.t)}</span><div class="bubble">${inner}</div></div>`
       : `<div class="msg bot"><div class="bubble">${inner}</div><span class="time">${hm(m.t)}</span></div>`;
@@ -566,7 +681,14 @@ function renderDaySheet(){
   if(!d){ b.innerHTML='<p class="empty">아직 기록이 없어요.</p>'; return; }
   const s=summarize(d);
   const del = (kind,id)=>`<button class="del" data-del="${kind}:${id}" aria-label="삭제"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>`;
-  let h = `<div class="sec">${dayTitle(d.id)} · 소모 내역</div>
+  let h = `<div class="sec">${dayTitle(d.id)} · 오늘 요약</div>
+    <div class="d-grid num">
+      <div><span class="s-label">소모</span><b>${N(s.burn)} <small>kcal</small></b></div>
+      <div><span class="s-label">${s.surplus>=0?'잉여':'결핍'}</span><b class="${s.surplus>0?'pos':'neg'}">${sgn(s.surplus)} <small>kcal</small></b></div>
+      <div><span class="s-label">예상 체중 변화</span><b class="${s.expKg>0?'pos':'neg'}">${sgn(s.expKg,2)} <small>kg</small></b></div>
+      <div><span class="s-label">걸음</span><b>${N(s.steps)} <small>보</small></b></div>
+    </div>
+    <div class="sec">소모 내역</div>
     <div class="list-item"><div class="grow">기초대사량<small>몸무게 ${N(s.weight,1)}kg 기준</small></div><span class="num">${N(s.bmr)} kcal</span></div>
     <div class="list-item"><div class="grow">걸음 ${N(s.steps)}보<small>${S.steps.length? '마지막 갱신 '+hm(S.steps[S.steps.length-1].t):'아직 걸음 데이터 없음'}</small></div><span class="num">${N(s.stepKcal)} kcal</span></div>`;
   h += d.exercises.map(x=>`<div class="list-item"><div class="grow">${esc(x.name)}<small>${hm(x.t)} ${esc(x.amount||'')}</small></div><span class="num">${N(x.kcal)} kcal</span>${del('e',x.id)}</div>`).join('');
@@ -588,7 +710,8 @@ $('#summary').addEventListener('click', ()=>{ renderDaySheet(); openSheet('#dayS
 /* ============ 설정 시트 ============ */
 function fillSettings(){
   const p=S.profile;
-  $('#f_age').value=p.age||''; $('#f_sex').value=p.sex||''; $('#f_height').value=p.height||''; $('#f_weight').value=p.weight||'';
+  $('#f_birth').value=p.birth||''; $('#ageNow').textContent = curAge()? `만 ${curAge()}세` : '';
+  $('#f_appname').value=S.settings.appName||''; $('#f_sex').value=p.sex||''; $('#f_height').value=p.height||''; $('#f_weight').value=p.weight||'';
   $('#f_tk').value=p.targetKcal||''; $('#f_tp').value=p.targetProtein||'';
   $('#f_key').value=S.settings.apiKey||''; $('#f_model').value=S.settings.model||DEFAULT_MODEL;
   $('#stepUrl').textContent = stepUrl();
@@ -598,11 +721,22 @@ $('#btnSettings').addEventListener('click', ()=>{ fillSettings(); resetArm=false
 $('#saveProfile').addEventListener('click', ()=>{
   const v=id=>$(id).value.trim();
   const was=profileReady();
-  const o={age:v('#f_age'),sex:v('#f_sex')||undefined,height:v('#f_height'),weight:v('#f_weight'),targetKcal:v('#f_tk'),targetProtein:v('#f_tp')};
+  const bRaw=v('#f_birth');
+  if (bRaw && !parseBirth(bRaw)) { toast('생년월일을 1988-03-15 형식으로 입력해 주세요'); return; }
+  const o={birth:bRaw,sex:v('#f_sex')||undefined,height:v('#f_height'),weight:v('#f_weight'),targetKcal:v('#f_tk'),targetProtein:v('#f_tp')};
   for (const k in o) if (o[k]==='' ) delete o[k];
   const ch=setProfile(o);
   if (!was && profileReady()) { const d=ensureDay(); addMsg('bot', `설정 완료! 추정 기초대사량 ${N(d.bmr)} kcal. 이제 먹은 음식과 운동을 적어주세요.`); }
   render(); toast(ch.length?'저장했어요':'변경 사항이 없어요'); closeSheets();
+});
+$('#saveName').addEventListener('click', ()=>{ S.settings.appName=$('#f_appname').value.trim(); applyAppName(); save(); toast('앱 이름을 저장했어요'); });
+function applyAppName(){ const n=S.settings.appName||'식단 노트'; $('#appName').textContent=n; document.title=n; }
+// 설정 칸을 누르면 기존 값 전체 선택 → 바로 입력하면 덮어쓰기
+document.querySelectorAll('input.sel').forEach(el=>{
+  const selAll=()=>{ try{ el.setSelectionRange(0, el.value.length); }catch(_){ el.select(); } };
+  el.addEventListener('focus', ()=>setTimeout(selAll, 0));
+  el.addEventListener('mouseup', e=>{ if (el.dataset.sel!=='1'){ e.preventDefault(); el.dataset.sel='1'; } });
+  el.addEventListener('blur', ()=>{ el.dataset.sel=''; });
 });
 $('#saveAI').addEventListener('click', ()=>{ S.settings.apiKey=$('#f_key').value.trim(); S.settings.model=$('#f_model').value.trim()||DEFAULT_MODEL; save(); toast('AI 설정을 저장했어요'); });
 function stepUrl(){ return `https://ntfy.sh/${S.settings.stepTopic}/publish?message=`; }
@@ -655,19 +789,34 @@ async function exportExcel(){
     d.foods.forEach(x=>foods.push([i, hm(x.t), x.name, x.amount||'', x.kcal, x.carb, x.protein, x.fat]));
     d.exercises.forEach(x=>exs.push([i, hm(x.t), x.name, x.amount||'', x.kcal]));
   }
-  const steps=[['시각','누적 걸음(달력일 기준)']]; S.steps.forEach(s=>steps.push([`${ymd(s.t)} ${hm(s.t)}`, s.count]));
+  const steps=[['받은 시각','걸음수','기준','해당 날짜']]; S.steps.forEach(s=>steps.push([`${ymd(s.t)} ${hm(s.t)}`, s.count, s.kind==='L'?'새벽 4시 기준':'0시 이후 누적', s.kind==='L'?s.day:ymd(s.t)]));
   const wb=XLSX.utils.book_new();
   const add=(rows,name,widths)=>{ const ws=XLSX.utils.aoa_to_sheet(rows); ws['!cols']=widths.map(w=>({wch:w})); XLSX.utils.book_append_sheet(wb, ws, name); };
   add(daily,'일별요약',[11,7,7,11,10,14,13,13,12,8,11,11,11,10,10,9,8,12,12,12,13]);
   add(foods,'섭취기록',[11,7,22,12,11,10,9,8]);
   add(exs,'운동기록',[11,7,22,14,10]);
-  add(steps,'걸음수',[17,18]);
+  add(steps,'걸음수',[17,10,14,12]);
   const out=XLSX.write(wb,{bookType:'xlsx',type:'array'});
   download(new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}), `식단기록_${stamp()}.xlsx`);
 }
 $('#btnExcel').addEventListener('click', exportExcel);
 
 /* ============ 걸음수 동기화 (단축어 → ntfy.sh → 앱) ============ */
+// 단축어 메시지 해석
+//  "6810"        → 예전 방식: 오늘 0시 이후 누적
+//  "6810_12034"  → 새 방식: 오늘 새벽 4시 이후 걸음 _ 어제 4시~오늘 4시 걸음
+// 쉼표(천 단위)는 무시하고, 6810.0 같은 소수점도 올바르게 읽음
+function ingestStepMessage(msg, t, id){
+  const nums=(msg.replace(/,/g,'').match(/\d+(?:\.\d+)?/g)||[]).map(parseFloat).filter(x=>isFinite(x));
+  if (!nums.length) return 0;
+  const before=S.steps.length;
+  if (nums.length>=2) {
+    const today=logicalDate(t);
+    addSteps(nums[0], t, id+'-a', 'L', today);
+    addSteps(nums[1], t, id+'-b', 'L', prevDate(today));
+  } else addSteps(nums[0], t, id);
+  return S.steps.length>before ? 1 : 0;
+}
 async function syncSteps(manual){
   const topic=S.settings.stepTopic; if(!topic) return 0;
   const since = S.settings.stepSince || 'all';
@@ -676,8 +825,8 @@ async function syncSteps(manual){
     if (!r.ok) return 0;
     const lines=(await r.text()).split('\n').filter(Boolean); let n=0;
     for (const ln of lines){ let m; try{ m=JSON.parse(ln);}catch(_){continue;}
-      if (m.event!=='message') continue; const c=parseInt(String(m.message||'').replace(/[^\d]/g,''));
-      if (!isNaN(c)) { const before=S.steps.length; addSteps(c, m.time*1000, 'ntfy-'+m.id); if (S.steps.length>before) n++; }
+      if (m.event!=='message') continue;
+      n += ingestStepMessage(String(m.message||''), m.time*1000, 'ntfy-'+m.id);
       S.settings.stepSince = m.id; }
     if (n) { ensureDay(); render(); } else save();
     return n;
@@ -686,7 +835,7 @@ async function syncSteps(manual){
 
 /* ============ 시작 ============ */
 function intro(){
-  addMsg('bot', '안녕하세요, 식단 노트예요.\n시작하려면 아래 정보를 한 번에 알려주세요.\n\n예) 나이 38, 남성, 키 175, 몸무게 78, 목표 1800kcal, 단백질 120g\n\n기초대사량 계산(Mifflin-St Jeor)에 성별이 필요해요. 음식·운동 칼로리 추정과 질문 답변은 오른쪽 위 설정에서 Gemini API 키를 넣으면 켜집니다.', {sys:true});
+  addMsg('bot', '안녕하세요!\n시작하려면 아래 정보를 한 번에 알려주세요.\n\n예) 생년월일 1988-03-15, 남성, 키 175, 몸무게 78, 목표 1800kcal, 단백질 120g\n\n기초대사량 계산(Mifflin-St Jeor)에 성별이 필요해요. 음식·운동 칼로리 추정과 질문 답변은 오른쪽 위 설정에서 Gemini API 키를 넣으면 켜집니다.', {sys:true});
 }
 const input=$('#input');
 input.addEventListener('input', ()=>{ input.style.height='auto'; input.style.height=Math.min(120,input.scrollHeight)+'px'; });
@@ -698,7 +847,8 @@ $('#chips').addEventListener('click', e=>{ const b=e.target.closest('.chip'); if
 (function boot(){
   // 단축어가 URL로 걸음수를 넘겨줄 때: ?steps=8123
   const qs=new URLSearchParams(location.search);
-  if (qs.has('steps')) { const c=parseInt(qs.get('steps')); if(!isNaN(c)) addSteps(c); history.replaceState(null,'',location.pathname); }
+  if (qs.has('steps')) { ingestStepMessage(qs.get('steps'), Date.now(), uid()); history.replaceState(null,'',location.pathname); }
+  applyAppName();
   if (!S.chat.length) intro();
   ensureDay(); render();
   syncSteps();
