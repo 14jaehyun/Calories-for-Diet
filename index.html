@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>식단 노트</title>
+<title>bite with me</title>
 <meta name="theme-color" content="#ffffff">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="color-scheme" content="light">
-<meta name="apple-mobile-web-app-title" content="식단 노트">
+<meta name="apple-mobile-web-app-title" content="bite with me">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="icon-192.png">
@@ -72,6 +72,11 @@ header h1 small{display:block;font-size:12px;font-weight:450;color:var(--sub);ma
 .status{margin-top:6px;font-size:12px;color:var(--sub)}
 .retry{display:block;margin-top:8px;padding:6px 12px;border-radius:14px;background:#fff;color:var(--blue);border:1px solid #c9d6e2;font-size:13px}
 .retry:active{background:var(--soft)}
+.memo-add{display:flex;gap:6px;align-items:center;margin-top:8px}
+.memo-add input{flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:9px 10px;background:var(--soft2);outline:none}
+.memo-add select{border:1px solid var(--line);border-radius:10px;padding:9px 6px;background:#fff}
+.memo-add .btn{width:auto;margin:0;padding:9px 14px;flex:none}
+#memoPick{margin-top:6px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;width:100%}
 .day-sep{text-align:center;font-size:11.5px;color:var(--faint);margin:14px 0 6px}
 .typing span{display:inline-block;width:6px;height:6px;margin:0 2px;border-radius:50%;background:var(--blue2);animation:b 1s infinite}
 .typing span:nth-child(2){animation-delay:.15s}.typing span:nth-child(3){animation-delay:.3s}
@@ -128,7 +133,7 @@ table.hist th:first-child,table.hist td:first-child{text-align:left}
 </head>
 <body>
 <header>
-  <h1><span id="appName">식단 노트</span><small id="dayLabel">&nbsp;</small></h1>
+  <h1><span id="appName">bite with me</span><small id="dayLabel">&nbsp;</small></h1>
   <button class="icon-btn" id="btnExcel" aria-label="엑셀 다운로드" title="엑셀 다운로드">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
   </button>
@@ -194,7 +199,7 @@ table.hist th:first-child,table.hist td:first-child{text-align:left}
       <p class="hint" id="syncInfo"></p>
 
       <div class="sec">앱</div>
-      <div class="field"><label for="f_appname">앱 이름</label><input id="f_appname" type="text" placeholder="식단 노트" class="sel"></div>
+      <div class="field"><label for="f_appname">앱 이름</label><input id="f_appname" type="text" placeholder="bite with me" class="sel"></div>
       <button class="btn ghost" id="saveName">이름 저장</button>
       <p class="hint">앱 안의 제목이 바뀝니다. 홈 화면 아이콘 이름은 아이폰이 처음 추가할 때 정해져서 여기서 바뀌지 않아요.</p>
 
@@ -216,12 +221,13 @@ const LS = 'dietnote.v1';
 const DEFAULT_MODEL = 'gemini-flash-latest';
 const KCAL_PER_KG = 7700;
 const NEW_DAY_HOUR = 4;               // 이 시각 이전은 전날로 취급
-const fresh = () => ({ profile:{}, settings:{ apiKey:'', model:DEFAULT_MODEL, stepTopic:'', stepSince:'' },
+const fresh = () => ({ notes:[], profile:{}, settings:{ apiKey:'', model:DEFAULT_MODEL, stepTopic:'', stepSince:'' },
   days:{}, cur:null, steps:[], chat:[] });
 let S;
 try { S = Object.assign(fresh(), JSON.parse(localStorage.getItem(LS) || 'null') || {}); } catch(e) { S = fresh(); }
 if (!S.settings.stepTopic) S.settings.stepTopic = 'dietnote-' + Math.random().toString(36).slice(2,8) + Math.random().toString(36).slice(2,8);
 function save(){ try { localStorage.setItem(LS, JSON.stringify(S)); } catch(e) { toast('저장 공간이 부족해요. 백업 후 오래된 기록을 정리해 주세요.'); } }
+if (!Array.isArray(S.notes)) S.notes=[];
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
 
 /* ============ 유틸 ============ */
@@ -322,6 +328,8 @@ function greetNewDay(d, prev){
     const s=summarize(prev);
     t += `\n어제 결과: 섭취 ${N(s.intake)} · 소모 ${N(s.burn)} kcal → ${s.surplus>=0?'잉여':'결핍'} ${sgn(s.surplus)} kcal (예상 체중 ${sgn(s.expKg,2)} kg)`;
   }
+  const todays=S.notes.filter(n=>n.date===d.id);
+  if (todays.length) t += `\n오늘 일정: ${todays.map(n=>n.text).join(', ')}`;
   t += `\n공복 몸무게와 체지방률을 알려주세요. 예) 몸무게 72.4 체지방 24.5`;
   addMsg('bot', t, {sys:true});
 }
@@ -363,6 +371,18 @@ function addSteps(count, t=Date.now(), id, kind, day){ count=Math.round(count); 
   S.steps.push(x); S.steps.sort((a,b)=>a.t-b.t);
   if (S.steps.length>5000) S.steps = S.steps.slice(-5000); }
 const prevDate = id => { const [y,m,d]=id.split('-').map(Number); return ymd(new Date(y,m-1,d-1,12)); };
+// ---- 메모·일정 (회식, 여행, 금주 등): AI가 조언할 때 항상 참고
+const nextDate = (id, n=1) => { const [y,m,d]=id.split('-').map(Number); return ymd(new Date(y,m-1,d+n,12)); };
+const todayId = () => (S.cur && S.days[S.cur]) ? S.cur : logicalDate(Date.now());
+function relDay(id){ const t=todayId(); if(id===t) return '오늘'; if(id===nextDate(t,1)) return '내일'; if(id===nextDate(t,2)) return '모레'; if(id===prevDate(t)) return '어제';
+  const [y,m,d]=id.split('-').map(Number); return `${m}/${d}`; }
+function addNote(text, date){ text=String(text||'').trim(); if(!text) return null; date = /^\d{4}-\d{2}-\d{2}$/.test(date||'') ? date : todayId();
+  const n={id:uid(), date, text, t:Date.now()}; S.notes.push(n); S.notes.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:a.t-b.t); return n; }
+function removeNote(target){ if(!target) return null; let i=S.notes.findIndex(n=>n.id===target);
+  if (i<0) i=S.notes.findIndex(n=>n.text.includes(target)||target.includes(n.text)); return i>=0 ? S.notes.splice(i,1)[0] : null; }
+// AI에 보낼 메모: 3일 전 ~ 14일 후
+function notesForAI(){ const t=todayId(), from=nextDate(t,-3), to=nextDate(t,14);
+  return S.notes.filter(n=>n.date>=from && n.date<=to).map(n=>`[${n.id}] ${n.date}(${relDay(n.date)}) ${n.text}`); }
 // 직접 입력한 걸음수: 오늘(새벽 4시 기준) 값으로 기록
 function addStepsManual(count){ const d=ensureDay(); addSteps(count, Date.now(), null, 'L', d? d.id : logicalDate(Date.now())); }
 function setProfile(o){
@@ -431,7 +451,8 @@ const SCHEMA = {
       name:{type:'STRING'}, amount:{type:'STRING'}, kcal:{type:'NUMBER'}
     }, required:['name','amount','kcal']}},
     others:{type:'ARRAY', items:{type:'OBJECT', properties:{
-      type:{type:'STRING', enum:['profile','weight','bodyfat','steps','wake','sleep','undo']},
+      type:{type:'STRING', enum:['profile','weight','bodyfat','steps','wake','sleep','undo','note','note_remove']},
+      text:{type:'STRING'}, date:{type:'STRING'},
       value:{type:'NUMBER'}, target:{type:'STRING'},
       birth:{type:'STRING'}, age:{type:'NUMBER'}, height:{type:'NUMBER'}, weight:{type:'NUMBER'}, sex:{type:'STRING', enum:['male','female']},
       target_kcal:{type:'NUMBER'}, target_protein:{type:'NUMBER'}
@@ -453,6 +474,7 @@ function context(){
       먹은음식:d.foods.map(x=>`${hm(x.t)} ${x.name} ${x.amount||''} ${x.kcal}kcal`),
       운동:d.exercises.map(x=>`${hm(x.t)} ${x.name} ${x.kcal}kcal`) };
     const ids=sortedIds().filter(i=>i<d.id).slice(-6);
+    ctx.메모일정 = notesForAI();
     if (ids.length) ctx.최근 = ids.map(i=>{ const x=S.days[i], s=summarize(x); return `${i} 섭취${s.intake} 소모${s.burn} 잉여${s.surplus} 체중${x.weightAM||'-'}`; });
   }
   return ctx;
@@ -470,6 +492,16 @@ function systemPrompt(){
 - foods: 음식 하나당 하나. name(음식명), amount(양 표기), kcal, carb, protein, fat(g, 소수 1자리). 모두 숫자. 한국 식당·가정식 일반 1인분 또는 사용자가 말한 중량 기준으로 현실적으로 추정한다. 조리법이 불분명하면 흔한 방식으로 가정하고 reply에 짧게 밝힌다.
 - exercises: 운동이나 일상 걸음 외의 특별한 신체활동. name, amount(시간/세트 등, 모르면 일반적인 1회 기준으로 가정), kcal(숫자, 0 금지) = 사용자 체중 기준 MET로 계산한 소모량에서 같은 시간의 기초대사량분을 뺀 순증가분. 걷기·산책은 걸음수로 이미 계산되므로 기록하지 말고 그렇게 안내한다. 달리기·등산처럼 걸음수에 잡히는 운동은 (예상 걸음 × 걸음당kcal)을 뺀 추가분만 넣는다.
 - others: type=weight(value=kg, 공복 몸무게), bodyfat(value=%), steps(value=오늘 누적 걸음수), wake(기상), sleep(취침), undo(방금 기록 취소, target=food|exercise|빈값), profile(생년월일·키·몸무게·성별·목표섭취칼로리·목표단백질 변경 요청 시 바뀌는 항목만, birth는 YYYY-MM-DD, target_kcal·target_protein 사용).
+
+[현황 데이터 우선 — 중요]
+- 오늘 먹은 음식·운동 목록, 합계, 남은 칼로리, 브리핑은 반드시 아래 [현황 데이터]를 기준으로 한다.
+- 대화 기록에 나온 기록은 이후 사용자가 앱에서 직접 수정·삭제했을 수 있다. 대화 기록과 현황 데이터가 다르면 항상 현황 데이터가 최신이며 정답이다. 현황에 없는 음식·운동은 언급하지 않는다.
+
+[메모·일정과 조언]
+- 현황의 메모일정은 사용자의 일정·특이사항이다(회식, 술자리, 여행, 금주, 운동 계획 등). 관련이 있으면 답변에 반영해 구체적으로 짧게(1~2문장) 조언한다. 관련 없을 때는 억지로 언급하지 않고, 같은 조언을 매번 반복하지 않는다.
+- 회식·술자리 당일: 그 전 끼니는 가볍게 하고 단백질은 챙겨 저녁용 칼로리 여유를 남기도록, 안주는 단백질 위주(구이·수육·두부·회 등)로 튀김·면·밥은 줄이도록, 술은 칼로리가 있으니 종류와 양을 정하고 물을 함께 마시도록 조언한다. 남은 칼로리 기준으로 숫자를 들어 말한다.
+- 회식·술자리 다음 날: 수분·전해질 보충, 단백질과 채소 위주의 회복식, 가벼운 유산소를 권하고, 아침 체중 증가는 수분·염분 영향일 수 있다고 알려준다.
+- 사용자가 앞으로의 일정이나 특이사항을 말하면("오늘 저녁 회식 있어", "토요일 등산") 음식 기록 규칙과 별개로 others에 type=note(text는 짧게, date는 YYYY-MM-DD)로 저장하고 reply에 메모했다고 알린다. 취소되면 type=note_remove(target=메모 id)로 지운다.
 
 [reply 작성법]
 - 한국어 존댓말, 짧고 명확하게(보통 1~3문장). 이모지 금지.
@@ -562,6 +594,8 @@ function applyActions(actions){
       case 'wake': notes.push(wakeUp().text); break;
       case 'sleep': notes.push(goSleep().text); break;
       case 'undo': notes.push(undoLast(a.target)); touched=true; break;
+      case 'note': { const n=addNote(a.text, a.date); if (n) notes.push(`메모 추가: ${relDay(n.date)} ${n.text}`); break; }
+      case 'note_remove': { const n=removeNote(a.target||a.text); if (n) notes.push(`메모 삭제: ${n.text}`); break; }
       case 'profile': { const ch=setProfile({birth:a.birth,age:a.age,height:a.height,weight:a.weight,sex:a.sex,targetKcal:a.target_kcal,targetProtein:a.target_protein});
         if (ch.length) notes.push('변경: '+ch.join(', ')); break; }
     }
@@ -698,12 +732,25 @@ function renderDaySheet(){
   h += d.exercises.map(x=>`<div class="list-item"><div class="grow">${esc(x.name)}<small>${hm(x.t)} ${esc(x.amount||'')}</small></div><span class="num">${N(x.kcal)} kcal</span>${del('e',x.id)}</div>`).join('');
   h += `<div class="sec">섭취 내역 · 탄 ${N(s.carb,1)} / 단 ${N(s.protein,1)} / 지 ${N(s.fat,1)} g</div>`;
   h += d.foods.length ? d.foods.map(x=>`<div class="list-item"><div class="grow">${esc(x.name)} <span style="color:var(--sub)">${esc(x.amount||'')}</span><small>${hm(x.t)} · 탄${N(x.carb,1)} 단${N(x.protein,1)} 지${N(x.fat,1)}g</small></div><span class="num">${N(x.kcal)} kcal</span>${del('f',x.id)}</div>`).join('') : '<p class="empty">아직 먹은 기록이 없어요.</p>';
+  const memoList = S.notes.filter(n=>n.date>=nextDate(d.id,-1)).slice(0,30);
+  h += `<div class="sec">메모·일정</div>` + (memoList.length ? memoList.map(n=>`<div class="list-item"><div class="grow">${esc(n.text)}<small>${relDay(n.date)} · ${n.date.slice(5).replace('-','/')}</small></div><button class="del" data-note="${n.id}" aria-label="메모 삭제"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>`).join('') : '<p class="empty">일정이나 특이사항을 적어 두면 AI가 감안해서 조언해요. 예) 저녁 회식</p>');
+  h += `<div class="memo-add"><input id="memoText" type="text" placeholder="예) 저녁 회식, 이번 주 금주"><select id="memoDate"><option value="${d.id}">오늘</option><option value="${nextDate(d.id,1)}">내일</option><option value="${nextDate(d.id,2)}">모레</option><option value="pick">날짜 선택</option></select><button class="btn" id="memoAdd">추가</button></div><input id="memoPick" type="date" hidden>`;
   h += `<div class="sec">아침 측정</div><div class="list-item"><div class="grow">공복 몸무게 ${d.weightAM? d.weightAM+' kg':'-'} · 체지방률 ${d.bodyFat? d.bodyFat+'%':'-'}
     ${d.actualChange!=null?`<small>전일 대비 ${sgn(d.actualChange,1)} kg${d.prevExpected!=null?` · 예상 ${sgn(d.prevExpected,2)} kg`:''}</small>`:''}</div></div>`;
   const ids=sortedIds().reverse().slice(0,14);
   h += `<div class="sec">최근 기록</div><table class="hist num"><tr><th>날짜</th><th>섭취</th><th>소모</th><th>잉여/결핍</th><th>체중</th></tr>` +
     ids.map(i=>{ const x=S.days[i], z=summarize(x); return `<tr><td>${i.slice(5).replace('-','/')}</td><td>${N(z.intake)}</td><td>${N(z.burn)}</td><td class="${z.surplus>0?'pos':'neg'}">${sgn(z.surplus)}</td><td>${x.weightAM||'-'}</td></tr>`; }).join('') + `</table>`;
   b.innerHTML=h;
+  b.querySelectorAll('[data-note]').forEach(btn=>btn.addEventListener('click',()=>{
+    const n=removeNote(btn.dataset.note); if(n){ toast(`메모 "${n.text}" 삭제됨`); save(); renderDaySheet(); }
+  }));
+  const ms=$('#memoDate'), mp=$('#memoPick');
+  ms.addEventListener('change', ()=>{ if (ms.value==='pick') { mp.hidden=false; mp.value=d.id; mp.focus(); } else mp.hidden=true; });
+  $('#memoAdd').addEventListener('click', ()=>{
+    const text=$('#memoText').value.trim(); if(!text){ toast('메모 내용을 적어 주세요'); return; }
+    const date = ms.value==='pick' ? (mp.value||d.id) : ms.value;
+    const n=addNote(text, date); save(); toast(`${relDay(n.date)} 메모를 추가했어요`); renderDaySheet();
+  });
   b.querySelectorAll('[data-del]').forEach(btn=>btn.addEventListener('click',()=>{
     const [k,id]=btn.dataset.del.split(':'); const arr = k==='f'?d.foods:d.exercises; const i=arr.findIndex(x=>x.id===id);
     if(i>=0){ const x=arr.splice(i,1)[0]; toast(`"${x.name}" 삭제됨`); render(); renderDaySheet(); }
@@ -734,7 +781,7 @@ $('#saveProfile').addEventListener('click', ()=>{
   render(); toast(ch.length?'저장했어요':'변경 사항이 없어요'); closeSheets();
 });
 $('#saveName').addEventListener('click', ()=>{ S.settings.appName=$('#f_appname').value.trim(); applyAppName(); save(); toast('앱 이름을 저장했어요'); });
-function applyAppName(){ const n=S.settings.appName||'식단 노트'; $('#appName').textContent=n; document.title=n; }
+function applyAppName(){ const n=S.settings.appName||'bite with me'; $('#appName').textContent=n; document.title=n; }
 // 설정 칸을 누르면 기존 값 전체 선택 → 바로 입력하면 덮어쓰기
 document.querySelectorAll('input.sel').forEach(el=>{
   const selAll=()=>{ try{ el.setSelectionRange(0, el.value.length); }catch(_){ el.select(); } };
@@ -800,6 +847,7 @@ async function exportExcel(){
   add(foods,'섭취기록',[11,7,22,12,11,10,9,8]);
   add(exs,'운동기록',[11,7,22,14,10]);
   add(steps,'걸음수',[17,10,14,12]);
+  const memos=[['날짜','메모']]; S.notes.forEach(n=>memos.push([n.date, n.text])); add(memos,'메모',[12,40]);
   const out=XLSX.write(wb,{bookType:'xlsx',type:'array'});
   download(new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}), `식단기록_${stamp()}.xlsx`);
 }
