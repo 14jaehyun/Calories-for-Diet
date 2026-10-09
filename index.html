@@ -72,11 +72,6 @@ header h1 small{display:block;font-size:12px;font-weight:450;color:var(--sub);ma
 .status{margin-top:6px;font-size:12px;color:var(--sub)}
 .retry{display:block;margin-top:8px;padding:6px 12px;border-radius:14px;background:#fff;color:var(--blue);border:1px solid #c9d6e2;font-size:13px}
 .retry:active{background:var(--soft)}
-.memo-add{display:flex;gap:6px;align-items:center;margin-top:8px}
-.memo-add input{flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:9px 10px;background:var(--soft2);outline:none}
-.memo-add select{border:1px solid var(--line);border-radius:10px;padding:9px 6px;background:#fff}
-.memo-add .btn{width:auto;margin:0;padding:9px 14px;flex:none}
-#memoPick{margin-top:6px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;width:100%}
 .day-sep{text-align:center;font-size:11.5px;color:var(--faint);margin:14px 0 6px}
 .typing span{display:inline-block;width:6px;height:6px;margin:0 2px;border-radius:50%;background:var(--blue2);animation:b 1s infinite}
 .typing span:nth-child(2){animation-delay:.15s}.typing span:nth-child(3){animation-delay:.3s}
@@ -380,8 +375,8 @@ function addNote(text, date){ text=String(text||'').trim(); if(!text) return nul
   const n={id:uid(), date, text, t:Date.now()}; S.notes.push(n); S.notes.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:a.t-b.t); return n; }
 function removeNote(target){ if(!target) return null; let i=S.notes.findIndex(n=>n.id===target);
   if (i<0) i=S.notes.findIndex(n=>n.text.includes(target)||target.includes(n.text)); return i>=0 ? S.notes.splice(i,1)[0] : null; }
-// AI에 보낼 메모: 3일 전 ~ 14일 후
-function notesForAI(){ const t=todayId(), from=nextDate(t,-3), to=nextDate(t,14);
+// AI에 보낼 메모: 어제 · 오늘 · 내일만
+function notesForAI(){ const t=todayId(), from=prevDate(t), to=nextDate(t,1);
   return S.notes.filter(n=>n.date>=from && n.date<=to).map(n=>`[${n.id}] ${n.date}(${relDay(n.date)}) ${n.text}`); }
 // 직접 입력한 걸음수: 오늘(새벽 4시 기준) 값으로 기록
 function addStepsManual(count){ const d=ensureDay(); addSteps(count, Date.now(), null, 'L', d? d.id : logicalDate(Date.now())); }
@@ -498,13 +493,17 @@ function systemPrompt(){
 - 대화 기록에 나온 기록은 이후 사용자가 앱에서 직접 수정·삭제했을 수 있다. 대화 기록과 현황 데이터가 다르면 항상 현황 데이터가 최신이며 정답이다. 현황에 없는 음식·운동은 언급하지 않는다.
 
 [메모·일정과 조언]
-- 현황의 메모일정은 사용자의 일정·특이사항이다(회식, 술자리, 여행, 금주, 운동 계획 등). 관련이 있으면 답변에 반영해 구체적으로 짧게(1~2문장) 조언한다. 관련 없을 때는 억지로 언급하지 않고, 같은 조언을 매번 반복하지 않는다.
+- 현황의 메모일정은 사용자의 어제·오늘·내일 일정·특이사항이다(회식, 술자리, 여행, 금주, 운동 계획 등). 관련이 있으면 답변에 반영해 구체적으로 짧게(1~2문장) 조언한다. 관련 없을 때는 억지로 언급하지 않고, 같은 조언을 매번 반복하지 않는다.
 - 회식·술자리 당일: 그 전 끼니는 가볍게 하고 단백질은 챙겨 저녁용 칼로리 여유를 남기도록, 안주는 단백질 위주(구이·수육·두부·회 등)로 튀김·면·밥은 줄이도록, 술은 칼로리가 있으니 종류와 양을 정하고 물을 함께 마시도록 조언한다. 남은 칼로리 기준으로 숫자를 들어 말한다.
 - 회식·술자리 다음 날: 수분·전해질 보충, 단백질과 채소 위주의 회복식, 가벼운 유산소를 권하고, 아침 체중 증가는 수분·염분 영향일 수 있다고 알려준다.
 - 사용자가 앞으로의 일정이나 특이사항을 말하면("오늘 저녁 회식 있어", "토요일 등산") 음식 기록 규칙과 별개로 others에 type=note(text는 짧게, date는 YYYY-MM-DD)로 저장하고 reply에 메모했다고 알린다. 취소되면 type=note_remove(target=메모 id)로 지운다.
 
 [reply 작성법]
-- 한국어 존댓말, 짧고 명확하게(보통 1~3문장). 이모지 금지.
+- 말투: 적극적이고 친근하며 열정 넘치는 퍼스널 트레이너. 반드시 존댓말을 쓴다. 사용자를 응원하고 동기를 북돋우되, 필요한 말은 분명하게 한다.
+  예) "좋아요! 단백질 35g 확보했어요. 저녁에 닭가슴살 한 덩이만 더하면 오늘 목표 완벽하게 달성입니다!"
+  예) "괜찮아요, 회식도 전략만 있으면 문제없어요! 안주는 수육이나 두부로 가시고, 술은 두 잔까지만 가보죠!"
+- 과식이나 실수에도 다그치거나 죄책감을 주지 않고, 바로 다음 행동을 구체적으로 제안한다. 근거 없는 과한 칭찬은 하지 않는다.
+- 짧고 힘 있게(보통 2~3문장). 느낌표는 적당히, 이모지는 꼭 필요할 때만 최대 1개.
 - 기록했으면 무엇을 몇 kcal로 기록했는지와 추정 근거를 한 줄로. 기록 후 합계/남은 칼로리는 앱이 자동으로 덧붙이니 쓰지 않는다.
 - 질문에는 아래 현황 데이터로 계산한 구체적 숫자로 답한다. "지금 라면 먹으면?" 같은 가정은 그 음식 추정치, 먹은 뒤 남는 섭취 칼로리, 오늘 잉여/결핍 변화, 예상 체중 영향(7,700kcal=1kg)을 계산해 알려준다.
 - 소모 칼로리 = 기초대사량 + 걸음 소모 + 운동 소모. 잉여/결핍 = 섭취 − 소모.
@@ -733,8 +732,7 @@ function renderDaySheet(){
   h += `<div class="sec">섭취 내역 · 탄 ${N(s.carb,1)} / 단 ${N(s.protein,1)} / 지 ${N(s.fat,1)} g</div>`;
   h += d.foods.length ? d.foods.map(x=>`<div class="list-item"><div class="grow">${esc(x.name)} <span style="color:var(--sub)">${esc(x.amount||'')}</span><small>${hm(x.t)} · 탄${N(x.carb,1)} 단${N(x.protein,1)} 지${N(x.fat,1)}g</small></div><span class="num">${N(x.kcal)} kcal</span>${del('f',x.id)}</div>`).join('') : '<p class="empty">아직 먹은 기록이 없어요.</p>';
   const memoList = S.notes.filter(n=>n.date>=nextDate(d.id,-1)).slice(0,30);
-  h += `<div class="sec">메모·일정</div>` + (memoList.length ? memoList.map(n=>`<div class="list-item"><div class="grow">${esc(n.text)}<small>${relDay(n.date)} · ${n.date.slice(5).replace('-','/')}</small></div><button class="del" data-note="${n.id}" aria-label="메모 삭제"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>`).join('') : '<p class="empty">일정이나 특이사항을 적어 두면 AI가 감안해서 조언해요. 예) 저녁 회식</p>');
-  h += `<div class="memo-add"><input id="memoText" type="text" placeholder="예) 저녁 회식, 이번 주 금주"><select id="memoDate"><option value="${d.id}">오늘</option><option value="${nextDate(d.id,1)}">내일</option><option value="${nextDate(d.id,2)}">모레</option><option value="pick">날짜 선택</option></select><button class="btn" id="memoAdd">추가</button></div><input id="memoPick" type="date" hidden>`;
+  h += `<div class="sec">메모·일정</div>` + (memoList.length ? memoList.map(n=>`<div class="list-item"><div class="grow">${esc(n.text)}<small>${relDay(n.date)} · ${n.date.slice(5).replace('-','/')}</small></div><button class="del" data-note="${n.id}" aria-label="메모 삭제"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>`).join('') : '<p class="empty">채팅으로 "오늘 저녁 회식 있어"처럼 말하면 메모돼요. AI는 어제·오늘·내일 메모를 감안해 조언해요.</p>');
   h += `<div class="sec">아침 측정</div><div class="list-item"><div class="grow">공복 몸무게 ${d.weightAM? d.weightAM+' kg':'-'} · 체지방률 ${d.bodyFat? d.bodyFat+'%':'-'}
     ${d.actualChange!=null?`<small>전일 대비 ${sgn(d.actualChange,1)} kg${d.prevExpected!=null?` · 예상 ${sgn(d.prevExpected,2)} kg`:''}</small>`:''}</div></div>`;
   const ids=sortedIds().reverse().slice(0,14);
@@ -744,13 +742,6 @@ function renderDaySheet(){
   b.querySelectorAll('[data-note]').forEach(btn=>btn.addEventListener('click',()=>{
     const n=removeNote(btn.dataset.note); if(n){ toast(`메모 "${n.text}" 삭제됨`); save(); renderDaySheet(); }
   }));
-  const ms=$('#memoDate'), mp=$('#memoPick');
-  ms.addEventListener('change', ()=>{ if (ms.value==='pick') { mp.hidden=false; mp.value=d.id; mp.focus(); } else mp.hidden=true; });
-  $('#memoAdd').addEventListener('click', ()=>{
-    const text=$('#memoText').value.trim(); if(!text){ toast('메모 내용을 적어 주세요'); return; }
-    const date = ms.value==='pick' ? (mp.value||d.id) : ms.value;
-    const n=addNote(text, date); save(); toast(`${relDay(n.date)} 메모를 추가했어요`); renderDaySheet();
-  });
   b.querySelectorAll('[data-del]').forEach(btn=>btn.addEventListener('click',()=>{
     const [k,id]=btn.dataset.del.split(':'); const arr = k==='f'?d.foods:d.exercises; const i=arr.findIndex(x=>x.id===id);
     if(i>=0){ const x=arr.splice(i,1)[0]; toast(`"${x.name}" 삭제됨`); render(); renderDaySheet(); }
