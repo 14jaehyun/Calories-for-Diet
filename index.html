@@ -141,15 +141,6 @@ table.hist th:first-child,table.hist td:first-child{text-align:left}
 
 <main id="chat" aria-live="polite"></main>
 
-<div class="chips" id="chips">
-  <button class="chip" data-t="남은 칼로리 얼마야?">남은 칼로리?</button>
-  <button class="chip" data-fill="공복 몸무게 ">몸무게</button>
-  <button class="chip" data-fill="체지방률 ">체지방률</button>
-  <button class="chip" data-fill="걸음수 ">걸음수</button>
-  <button class="chip" data-t="일어났어">기상</button>
-  <button class="chip" data-t="이제 잘게">취침</button>
-  <button class="chip" data-t="방금 기록 취소해">방금 기록 취소</button>
-</div>
 <form id="composer" autocomplete="off">
   <textarea id="input" rows="1" placeholder="먹은 것, 운동, 궁금한 것" enterkeyhint="send"></textarea>
   <button id="send" type="submit" aria-label="보내기">
@@ -402,8 +393,26 @@ function undoLast(target){
 }
 
 /* ============ 로컬 해석 (AI 없이 처리할 수 있는 명확한 입력) ============ */
+// 시각이 들어간 기상 표현 → {h,m}
+function parseWakeTime(t){
+  const TM='(오전|오후|아침|새벽)?\\s*(\\d{1,2})\\s*(?:시|:)\\s*(반|\\d{1,2})?\\s*분?';
+  const WK='(?:일어났(?:어|다|음|어요|습니다)?|일어남|기상(?:했어|했어요|함)?)';
+  let m = t.match(new RegExp('^'+TM+'\\s*(?:에|쯤|경)?\\s*'+WK+'[.!~ ]*$')) || t.match(new RegExp('^기상\\s*(?:시각|시간)?\\s*(?:은|는|:)?\\s*'+TM+'(?:\\s*(?:이야|이에요|예요))?[.!~ ]*$'));
+  if (!m) return null;
+  let h=+m[2], mi = m[3]==='반' ? 30 : (m[3]? +m[3] : 0);
+  if (m[1]==='오후' && h<12) h+=12;
+  if (h>23 || mi>59) return null;
+  return {h, m:mi};
+}
+function setWakeTime(h, mi){
+  const d=ensureDay(); if(!d) return '먼저 내 정보를 입력해 주세요.';
+  const [y,mo,dd]=d.id.split('-').map(Number);
+  d.wakeAt = new Date(y,mo-1,dd,h,mi).getTime();
+  return `기상 시각을 ${pad(h)}:${pad(mi)}로 기록했어요.`;
+}
 function parseQuick(text){
   const t = text.trim();
+  const wt = parseWakeTime(t); if (wt) return {wakeAt:wt};
   if (/^(기상|일어났(어|다|음|어요|습니다)|굿모닝|좋은 아침)[.!~ ]*$/.test(t)) return {wake:true};
   if (/^(취침|이제\s*)?(잘게|자러\s*(갈게|감)|잔다|굿나잇|취침)[.!~ ]*(요)?$/.test(t)) return {sleep:true};
   if (/^(방금|마지막)?\s*(기록)?\s*(취소|삭제|되돌려)(해|해줘|해 줘)?[.!~ ]*$/.test(t)) return {undo:true};
@@ -447,7 +456,7 @@ const SCHEMA = {
     }, required:['name','amount','kcal']}},
     others:{type:'ARRAY', items:{type:'OBJECT', properties:{
       type:{type:'STRING', enum:['profile','weight','bodyfat','steps','wake','sleep','undo','note','note_remove']},
-      text:{type:'STRING'}, date:{type:'STRING'},
+      text:{type:'STRING'}, date:{type:'STRING'}, time:{type:'STRING'},
       value:{type:'NUMBER'}, target:{type:'STRING'},
       birth:{type:'STRING'}, age:{type:'NUMBER'}, height:{type:'NUMBER'}, weight:{type:'NUMBER'}, sex:{type:'STRING', enum:['male','female']},
       target_kcal:{type:'NUMBER'}, target_protein:{type:'NUMBER'}
@@ -486,7 +495,7 @@ function systemPrompt(){
 [배열 작성법]
 - foods: 음식 하나당 하나. name(음식명), amount(양 표기), kcal, carb, protein, fat(g, 소수 1자리). 모두 숫자. 한국 식당·가정식 일반 1인분 또는 사용자가 말한 중량 기준으로 현실적으로 추정한다. 조리법이 불분명하면 흔한 방식으로 가정하고 reply에 짧게 밝힌다.
 - exercises: 운동이나 일상 걸음 외의 특별한 신체활동. name, amount(시간/세트 등, 모르면 일반적인 1회 기준으로 가정), kcal(숫자, 0 금지) = 사용자 체중 기준 MET로 계산한 소모량에서 같은 시간의 기초대사량분을 뺀 순증가분. 걷기·산책은 걸음수로 이미 계산되므로 기록하지 말고 그렇게 안내한다. 달리기·등산처럼 걸음수에 잡히는 운동은 (예상 걸음 × 걸음당kcal)을 뺀 추가분만 넣는다.
-- others: type=weight(value=kg, 공복 몸무게), bodyfat(value=%), steps(value=오늘 누적 걸음수), wake(기상), sleep(취침), undo(방금 기록 취소, target=food|exercise|빈값), profile(생년월일·키·몸무게·성별·목표섭취칼로리·목표단백질 변경 요청 시 바뀌는 항목만, birth는 YYYY-MM-DD, target_kcal·target_protein 사용).
+- others: type=weight(value=kg, 공복 몸무게), bodyfat(value=%), steps(value=오늘 누적 걸음수), wake(기상, 시각을 말하면 time=HH:MM 24시간제), sleep(취침), undo(방금 기록 취소, target=food|exercise|빈값), profile(생년월일·키·몸무게·성별·목표섭취칼로리·목표단백질 변경 요청 시 바뀌는 항목만, birth는 YYYY-MM-DD, target_kcal·target_protein 사용).
 
 [현황 데이터 우선 — 중요]
 - 오늘 먹은 음식·운동 목록, 합계, 남은 칼로리, 브리핑은 반드시 아래 [현황 데이터]를 기준으로 한다.
@@ -500,10 +509,10 @@ function systemPrompt(){
 
 [reply 작성법]
 - 말투: 적극적이고 친근하며 열정 넘치는 퍼스널 트레이너. 반드시 존댓말을 쓴다. 사용자를 응원하고 동기를 북돋우되, 필요한 말은 분명하게 한다.
-  예) "좋아요! 단백질 35g 확보했어요. 저녁에 닭가슴살 한 덩이만 더하면 오늘 목표 완벽하게 달성입니다!"
-  예) "괜찮아요, 회식도 전략만 있으면 문제없어요! 안주는 수육이나 두부로 가시고, 술은 두 잔까지만 가보죠!"
+  예) "좋아요, 단백질 35g 확보했어요. 저녁에 닭가슴살 한 덩이만 더하면 오늘 목표를 완벽하게 채웁니다."
+  예) "회식도 전략만 있으면 충분히 괜찮아요. 안주는 수육이나 두부로 고르시고, 술은 두 잔까지만 가 보죠."
 - 과식이나 실수에도 다그치거나 죄책감을 주지 않고, 바로 다음 행동을 구체적으로 제안한다. 근거 없는 과한 칭찬은 하지 않는다.
-- 짧고 힘 있게(보통 2~3문장). 느낌표는 적당히, 이모지는 꼭 필요할 때만 최대 1개.
+- 짧고 힘 있게(보통 2~3문장). 느낌표(!)는 절대 쓰지 않는다. 열정은 느낌표 대신 단어 선택과 구체적인 제안으로 표현하고, 문장은 마침표로 끝낸다. 이모지도 쓰지 않는다.
 - 기록했으면 무엇을 몇 kcal로 기록했는지와 추정 근거를 한 줄로. 기록 후 합계/남은 칼로리는 앱이 자동으로 덧붙이니 쓰지 않는다.
 - 질문에는 아래 현황 데이터로 계산한 구체적 숫자로 답한다. "지금 라면 먹으면?" 같은 가정은 그 음식 추정치, 먹은 뒤 남는 섭취 칼로리, 오늘 잉여/결핍 변화, 예상 체중 영향(7,700kcal=1kg)을 계산해 알려준다.
 - 소모 칼로리 = 기초대사량 + 걸음 소모 + 운동 소모. 잉여/결핍 = 섭취 − 소모.
@@ -590,7 +599,8 @@ function applyActions(actions){
       case 'weight': if (num(a.value)>20) { notes.push(setMorningWeight(num(a.value))); touched=true; } break;
       case 'bodyfat': if (num(a.value)>0) { notes.push(setBodyFat(num(a.value))); touched=true; } break;
       case 'steps': if (num(a.value)>=0) { addStepsManual(num(a.value)); notes.push(`걸음수 ${N(num(a.value))}보 반영했어요.`); touched=true; } break;
-      case 'wake': notes.push(wakeUp().text); break;
+      case 'wake': { const tm=String(a.time||'').match(/^(\d{1,2}):(\d{2})$/);
+        notes.push(tm ? setWakeTime(+tm[1], +tm[2]) : wakeUp().text); break; }
       case 'sleep': notes.push(goSleep().text); break;
       case 'undo': notes.push(undoLast(a.target)); touched=true; break;
       case 'note': { const n=addNote(a.text, a.date); if (n) notes.push(`메모 추가: ${relDay(n.date)} ${n.text}`); break; }
@@ -626,6 +636,7 @@ async function handle(text){
   const q=parseQuick(text);
   if (q) {
     const out=[];
+    if (q.wakeAt) out.push(setWakeTime(q.wakeAt.h, q.wakeAt.m));
     if (q.wake) out.push(wakeUp().text);
     if (q.sleep) out.push(goSleep().text);
     if (q.undo) out.push(undoLast());
@@ -884,8 +895,6 @@ const input=$('#input');
 input.addEventListener('input', ()=>{ input.style.height='auto'; input.style.height=Math.min(120,input.scrollHeight)+'px'; });
 input.addEventListener('keydown', e=>{ if(e.key==='Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); $('#composer').requestSubmit(); } });
 $('#composer').addEventListener('submit', e=>{ e.preventDefault(); const t=input.value; if(!t.trim()||busy) return; input.value=''; input.style.height='auto'; handle(t); });
-$('#chips').addEventListener('click', e=>{ const b=e.target.closest('.chip'); if(!b) return;
-  if (b.dataset.t) handle(b.dataset.t); else { input.value=b.dataset.fill; input.focus(); } });
 
 (function boot(){
   // 단축어가 URL로 걸음수를 넘겨줄 때: ?steps=8123
