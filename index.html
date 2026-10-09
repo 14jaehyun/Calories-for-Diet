@@ -26,7 +26,12 @@ input,select,textarea{font:inherit;font-size:16px;color:var(--ink)}
 
 /* header */
 header{padding:calc(env(safe-area-inset-top) + 10px) 16px 8px;display:flex;align-items:center;gap:8px}
-header h1{font-size:17px;font-weight:650;margin:0;flex:1;letter-spacing:-.2px}
+header .brand{flex:1;display:flex;align-items:center;gap:10px;min-width:0}
+header h1{font-size:17px;font-weight:650;margin:0;flex:0 1 auto;min-width:0;letter-spacing:-.2px}
+/* 남녀 쿠키 아이콘: 누르면 소리만 (화면 효과 없음) */
+#badge{width:37px;height:37px;flex:none;display:none;border-radius:22%;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+#badge.on{display:block}
+#badge img{display:block;width:100%;height:100%;pointer-events:none}
 header h1 small{display:block;font-size:12px;font-weight:450;color:var(--sub);margin-top:1px}
 .icon-btn{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;color:var(--blue)}
 .icon-btn:active{background:var(--soft)}
@@ -76,6 +81,14 @@ header h1 small{display:block;font-size:12px;font-weight:450;color:var(--sub);ma
 .typing span{display:inline-block;width:6px;height:6px;margin:0 2px;border-radius:50%;background:var(--blue2);animation:b 1s infinite}
 .typing span:nth-child(2){animation-delay:.15s}.typing span:nth-child(3){animation-delay:.3s}
 @keyframes b{0%,80%,100%{opacity:.25}40%{opacity:1}}
+/* 주간 리포트 */
+.bot .bubble.wide{max-width:92%}
+.rep{background:#1B2430;border-radius:14px;padding:12px 12px 10px;margin:2px 0 10px;color:#fff;white-space:normal}
+.rep-h{font-weight:650;font-size:14px;color:#fff}.rep-h span{font-weight:400;font-size:11.5px;color:rgba(255,255,255,.55);margin-left:4px}
+.rep svg{display:block;width:100%;margin-top:6px}
+.rep-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px;text-align:center}
+.rep-stats div{background:rgba(255,255,255,.07);border-radius:9px;padding:6px 2px}
+.rep-stats small{display:block;font-size:10.5px;color:rgba(255,255,255,.55)}.rep-stats b{font-size:15px;color:#fff}
 
 /* input */
 #composer{display:flex;gap:8px;align-items:flex-end;padding:8px 12px calc(env(safe-area-inset-bottom) + 8px);border-top:1px solid var(--line);background:#fff}
@@ -128,7 +141,10 @@ table.hist th:first-child,table.hist td:first-child{text-align:left}
 </head>
 <body>
 <header>
-  <h1><span id="appName">bite with me</span><small id="dayLabel">&nbsp;</small></h1>
+  <div class="brand">
+    <h1><span id="appName">bite with me</span><small id="dayLabel">&nbsp;</small></h1>
+    <button id="badge" type="button" aria-label="뿅"><img alt="" src="badge-male.png"></button>
+  </div>
   <button class="icon-btn" id="btnExcel" aria-label="엑셀 다운로드" title="엑셀 다운로드">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
   </button>
@@ -208,12 +224,13 @@ const DEFAULT_MODEL = 'gemini-flash-latest';
 const KCAL_PER_KG = 7700;
 const NEW_DAY_HOUR = 4;               // 이 시각 이전은 전날로 취급
 const fresh = () => ({ notes:[], profile:{}, settings:{ apiKey:'', model:DEFAULT_MODEL, stepTopic:'', stepSince:'' },
-  days:{}, cur:null, steps:[], chat:[] });
+  days:{}, cur:null, steps:[], chat:[], reports:{} });
 let S;
 try { S = Object.assign(fresh(), JSON.parse(localStorage.getItem(LS) || 'null') || {}); } catch(e) { S = fresh(); }
 if (!S.settings.stepTopic) S.settings.stepTopic = 'dietnote-' + Math.random().toString(36).slice(2,8) + Math.random().toString(36).slice(2,8);
 function save(){ try { localStorage.setItem(LS, JSON.stringify(S)); } catch(e) { toast('저장 공간이 부족해요. 백업 후 오래된 기록을 정리해 주세요.'); } }
 if (!Array.isArray(S.notes)) S.notes=[];
+if (!S.reports || typeof S.reports!=='object') S.reports={};
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
 
 /* ============ 유틸 ============ */
@@ -286,6 +303,19 @@ function summarize(d){
     burn:Math.round(burn), surplus, expKg: surplus/KCAL_PER_KG, tk, tp, remain: tk-Math.round(f.k), protRemain: r1(tp-f.p), weight:w };
 }
 function latestWeightBefore(d){ let p=prevDay(d); while(p){ if(p.weightAM) return p.weightAM; p=prevDay(p);} return null; }
+// 걸음 데이터가 없는 날은 소모가 기초대사량만으로 잡혀 너무 낮아지므로, 앉아서 생활하는 하루 소모(기초대사량×1.2)를 최저선으로
+const burnFloor = () => Math.round((calcBMR()||0)*1.2);
+// 목표 방향: 설정한 목표 섭취칼로리가 평소 소모보다 낮으면 감량, 높으면 증량(벌크업)
+// 평소 소모 = 최근 기록이 있는 날(오늘 제외, 최대 7일)의 평균 소모, 없으면 오늘 추정 소모
+function goalMode(ids, target){
+  const cur = S.cur && S.days[S.cur];
+  ids = ids || sortedIds().filter(i=>!cur || i<cur.id).slice(-7);
+  const burns = ids.map(i=>S.days[i]).filter(d=>d && d.foods.length).map(d=>summarize(d).burn);
+  let burn = burns.length ? Math.round(burns.reduce((a,b)=>a+b,0)/burns.length) : (cur ? summarize(cur).burn : (calcBMR()||0));
+  burn = Math.max(burn, burnFloor());
+  const tk = target || S.profile.targetKcal || 0;
+  return { mode: tk && burn && tk > burn ? 'bulk' : 'cut', target:tk, burn };
+}
 
 /* ============ 하루(기상~취침) 관리 ============ */
 function logicalDate(t){ return ymd(t - NEW_DAY_HOUR*3600e3); }
@@ -479,12 +509,18 @@ function context(){
       운동:d.exercises.map(x=>`${hm(x.t)} ${x.name} ${x.kcal}kcal`) };
     const ids=sortedIds().filter(i=>i<d.id).slice(-6);
     ctx.메모일정 = notesForAI();
+    const g = goalMode();
+    ctx.목표방향 = { 방향: g.mode==='bulk'?'증량(벌크업)':'감량', 목표섭취kcal:g.target, 평소소모kcal:g.burn, 차이kcal:g.target-g.burn };
     if (ids.length) ctx.최근 = ids.map(i=>{ const x=S.days[i], s=summarize(x); return `${i} 섭취${s.intake} 소모${s.burn} 잉여${s.surplus} 체중${x.weightAM||'-'}`; });
   }
   return ctx;
 }
 function systemPrompt(){
-  return `너는 1인용 다이어트 식단관리 앱 "식단 노트"의 기록 도우미다. 사용자의 채팅 메시지를 읽고 지정된 JSON으로만 응답한다.
+  return `너는 1인용 식단관리 앱 "${S.settings.appName||'bite with me'}"의 기록 도우미이자 트레이너다. 사용자의 채팅 메시지를 읽고 지정된 JSON으로만 응답한다.
+
+[목표 방향 — 감량일 수도, 벌크업일 수도 있다]
+- 이 앱은 감량과 증량(벌크업) 모두에 쓰인다. 방향은 사용자가 설정한 목표 섭취칼로리로 판단한다: 목표 섭취가 평소 소모보다 낮으면 감량, 높으면 증량이다. 현황 데이터의 목표방향을 따른다. 차이가 100kcal 안팎으로 작으면 유지에 가깝다고 보고 조언한다.
+- 조언은 항상 설정된 목표 섭취칼로리와 목표 단백질을 채우거나 지키는 방향으로 한다. 감량 중에는 목표를 넘지 않도록, 증량 중에는 목표를 충분히 채우도록 돕는다. 결핍이 좋다거나 잉여가 나쁘다고 일반화하지 않는다.
 
 [기록 규칙 — 가장 중요]
 - "먹었다/먹었어/먹음/마셨다/했다/했어/하고 왔어/다녀왔다/기록해/추가해/넣어줘"처럼 이미 수행했거나 기록을 명시적으로 요청한 것만 기록한다.
@@ -548,6 +584,20 @@ async function askGemini(userText, note, modelOverride){
   if (note) hist[hist.length-1].parts[0].text += '\n\n[앱 알림] ' + note;
   const body = { systemInstruction:{parts:[{text:systemPrompt()}]}, contents:hist,
     generationConfig:{ responseMimeType:'application/json', responseSchema:SCHEMA } };
+  const raw = await geminiRaw(body, model);
+  let j; try { j = JSON.parse(raw.replace(/^```(json)?|```$/g,'')); } catch(e) { return { reply: raw || '응답을 이해하지 못했어요. 다시 말씀해 주세요.', actions:[] }; }
+  const arr = v => Array.isArray(v) ? v : [];
+  const actions = [
+    ...arr(j.foods).map(f=>({...f, type:'food'})),
+    ...arr(j.exercises).map(x=>({...x, type:'exercise'})),
+    ...arr(j.others),
+    ...arr(j.actions)                      // 예전 형식 응답도 허용
+  ];
+  return { reply:String(j.reply||''), actions };
+}
+// Gemini 호출 공통: 응답 텍스트를 돌려주고, 오류는 AIError로
+async function geminiRaw(body, model){
+  const key=S.settings.apiKey;
   const ctl = new AbortController(); const timer = setTimeout(()=>ctl.abort(), TIMEOUT_MS);
   let res;
   try {
@@ -567,16 +617,20 @@ async function askGemini(userText, note, modelOverride){
     if (res.status>=500) throw new AIError('Gemini 서버가 혼잡해요. 잠시 후 다시 보내 주세요.', true);
     throw new AIError(`Gemini 오류 (${res.status}): ${msg}`, false); }
   const parts = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) || [];
-  const raw = parts.filter(p=>!p.thought && p.text).map(p=>p.text).join('').trim();
-  let j; try { j = JSON.parse(raw.replace(/^```(json)?|```$/g,'')); } catch(e) { return { reply: raw || '응답을 이해하지 못했어요. 다시 말씀해 주세요.', actions:[] }; }
-  const arr = v => Array.isArray(v) ? v : [];
-  const actions = [
-    ...arr(j.foods).map(f=>({...f, type:'food'})),
-    ...arr(j.exercises).map(x=>({...x, type:'exercise'})),
-    ...arr(j.others),
-    ...arr(j.actions)                      // 예전 형식 응답도 허용
-  ];
-  return { reply:String(j.reply||''), actions };
+  return parts.filter(p=>!p.thought && p.text).map(p=>p.text).join('').trim();
+}
+// 일반 문장 응답(주간 리포트 조언 등): 서버 혼잡 시 재시도 → 가벼운 모델
+async function askText(system, user){
+  const main=(S.settings.model||DEFAULT_MODEL).trim();
+  const plan=[[main,0],[main,2000],[main,5000]]; if (main!==FALLBACK_MODEL) plan.push([FALLBACK_MODEL,1000]);
+  const body={ systemInstruction:{parts:[{text:system}]}, contents:[{role:'user', parts:[{text:user}]}] };
+  let last;
+  for (const [model,wait] of plan){
+    if (wait) await sleepMs(wait);
+    try { return await geminiRaw(body, model); }
+    catch(e){ last=e; if (!e.retryable) throw e; }
+  }
+  throw last;
 }
 // 답변과 기록이 어긋났는지 검사: 기록했다고 말했는데 항목이 없거나, 칼로리가 비어 있음
 function recordProblem(r){
@@ -632,6 +686,8 @@ async function handle(text){
     return;
   }
   ensureDay();
+  // 주간 리포트 요청 → 지난주 리포트 다시 보여주기
+  if (isReportAsk(text)) { await showWeeklyReport(false); return; }
   // 2) 명확한 숫자 입력은 바로 처리
   const q=parseQuick(text);
   if (q) {
@@ -683,6 +739,136 @@ $('#chat').addEventListener('click', e=>{
   const text=m.retry; delete m.retry; save(); runAI(text);
 });
 
+/* ============ 주간 리포트 ============ */
+// 월요일에 처음 앱을 켜면 지난주(월~일) 리포트를 자동으로 보여줌.
+// "주간리포트 보여줘" → 이번 주 월요일에 보여준 지난주 리포트를 같은 숫자로 다시 보여주고, 조언은 처음 조언의 큰 맥락만 유지.
+const dowOf = id => { const [y,m,d]=id.split('-').map(Number); return new Date(y,m-1,d).getDay(); };
+const md = id => id.slice(5).replace(/^0/,'').replace('-0','-').replace('-','/');
+function lastWeekStart(today=todayId()){ const back=(dowOf(today)+6)%7; return nextDate(today, -back-7); }
+function lastWeightBeforeId(id){ const ids=sortedIds().filter(i=>i<id); for (let k=ids.length-1;k>=0;k--){ const w=S.days[ids[k]].weightAM; if (w) return w; } return null; }
+function buildWeek(ws){
+  const we = nextDate(ws,6), ids=[];
+  for (let k=-3;k<=6;k++) ids.push(nextDate(ws,k));   // 지난주 금·토·일 + 이번 주 월~일
+  const slots = ids.map((id,i)=>{ const d=S.days[id], has=!!(d && d.foods.length);
+    const w = d && d.weightAM || null; const pw = w ? lastWeightBeforeId(id) : null;
+    return { id, dow:WD[dowOf(id)], inWeek:i>=3, has, surplus: has? summarize(d).surplus : null, burn: has? summarize(d).burn : null,
+      target: d && (d.targetKcal||null), weight:w, delta: (w && pw) ? r1(w-pw) : null }; });
+  const wk = slots.filter(s=>s.inWeek), rec = wk.filter(s=>s.has);
+  const sum = rec.reduce((a,s)=>a+s.surplus,0);
+  const lastW = [...wk].reverse().find(s=>s.weight), baseW = lastWeightBeforeId(ws);
+  const tgt = (rec.find(s=>s.target)||{}).target || S.profile.targetKcal || 0;
+  const avgBurn = Math.max(burnFloor(), rec.length ? Math.round(rec.reduce((a,s)=>a+s.burn,0)/rec.length) : goalMode().burn);
+  return { ws, we, slots, n:rec.length, avg: rec.length? Math.round(sum/rec.length) : null, sum: rec.length? sum : null,
+    wchg: (lastW && baseW) ? r1(lastW.weight-baseW) : null, mode: tgt && avgBurn && tgt>avgBurn ? 'bulk' : 'cut', target:tgt, avgBurn };
+}
+function reportSVG(D){
+  const W=296,H=214,L=34,R=34,T=40,B=26, pw=W-L-R, ph=H-T-B, bw=pw/10;
+  const vals=D.slots.filter(s=>s.has).map(s=>Math.abs(s.surplus));
+  const mx=Math.max(400, Math.ceil(Math.max(0,...vals)/400)*400);
+  const ky=v=>T+ph/2-v/mx*(ph/2);
+  const ws=D.slots.filter(s=>s.weight).map(s=>s.weight);
+  let wmin=Math.min(...ws), wmax=Math.max(...ws); if (ws.length){ wmin=Math.floor((wmin-0.2)*2)/2; wmax=Math.ceil((wmax+0.2)*2)/2; if (wmax-wmin<1) wmax=wmin+1; }
+  const wy=v=>T+(wmax-v)/(wmax-wmin)*ph, cx=i=>L+i*bw+bw/2;
+  const o=[`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="주간 잉여 결핍과 체중">`];
+  o.push(`<text x="${L-4}" y="${T-12}" font-size="8" fill="rgba(255,255,255,.45)" text-anchor="end">체중±</text>`);
+  o.push(`<text x="${L-4}" y="${T+3}" font-size="8" fill="rgba(255,255,255,.45)" text-anchor="end">kcal</text>`);
+  if (ws.length) o.push(`<text x="${W-R+4}" y="${T+3}" font-size="8" fill="#3DDC97">kg</text>`);
+  for (const v of [-mx,-mx/2,0,mx/2]){ const y=ky(v);
+    o.push(`<line x1="${L}" x2="${W-R}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}" stroke="${v===0?'rgba(255,255,255,.55)':'rgba(255,255,255,.12)'}" stroke-width="${v===0?1.2:1}"/>`);
+    o.push(`<text x="${L-4}" y="${(y+3).toFixed(1)}" font-size="8.5" fill="rgba(255,255,255,.55)" text-anchor="end">${v>0?'+':''}${v}</text>`); }
+  if (ws.length) for (let v=Math.ceil(wmin*2)/2; v<=wmax+1e-9; v+=0.5){ if (v<=wmin+0.05 || v>=wmax-0.05) continue;
+    o.push(`<text x="${W-R+4}" y="${(wy(v)+3).toFixed(1)}" font-size="8.5" fill="#3DDC97">${v.toFixed(1)}</text>`); }
+  D.slots.forEach((s,i)=>{
+    if (s.has){ const y0=ky(0), y1=ky(s.surplus);
+      o.push(`<rect x="${(L+i*bw+bw*0.2).toFixed(1)}" y="${Math.min(y0,y1).toFixed(1)}" width="${(bw*0.6).toFixed(1)}" height="${Math.max(1,Math.abs(y1-y0)).toFixed(1)}" rx="2" fill="${s.inWeek?'rgba(255,255,255,.32)':'rgba(255,255,255,.13)'}"/>`); }
+    const lab = s.inWeek ? (s.has ? '#fff' : 'rgba(255,255,255,.35)') : 'rgba(255,255,255,.35)';
+    o.push(`<text x="${cx(i).toFixed(1)}" y="${H-10}" font-size="9.5" font-weight="${s.inWeek&&s.has?700:400}" fill="${lab}" text-anchor="middle">${s.dow}</text>`);
+    const good = s.delta!=null && (D.mode==='bulk' ? s.delta>0 : s.delta<0);
+    const dt = s.delta==null ? '–' : (s.delta>0?'+':'')+s.delta.toFixed(1);
+    const col = s.delta==null ? 'rgba(255,255,255,.35)' : good ? '#3DDC97' : 'rgba(255,255,255,.75)';
+    o.push(`<text x="${cx(i).toFixed(1)}" y="${T-12}" font-size="8.6" font-weight="600" fill="${col}" text-anchor="middle" opacity="${s.inWeek?1:.55}">${dt}</text>`);
+  });
+  const pts=D.slots.map((s,i)=>s.weight?[cx(i),wy(s.weight)]:null).filter(Boolean);
+  if (pts.length>1) o.push(`<polyline points="${pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ')}" fill="none" stroke="#3DDC97" stroke-width="2.4" stroke-linejoin="round"/>`);
+  pts.forEach(p=>o.push(`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.6" fill="#1B2430" stroke="#3DDC97" stroke-width="2"/>`));
+  const li=D.slots.map(s=>!!s.weight).lastIndexOf(true);
+  if (li>=0) o.push(`<text x="${cx(li).toFixed(1)}" y="${(wy(D.slots[li].weight)+14).toFixed(1)}" font-size="9" font-weight="700" fill="#fff" text-anchor="middle">${D.slots[li].weight.toFixed(1)}</text>`);
+  o.push('</svg>');
+  return o.join('');
+}
+function reportHTML(rep){
+  const D=rep.data, nn = D.n<7 && D.n>0 ? ` · ${D.n}일` : '';
+  const st=(lab,v,unit,d=0)=>`<div><small>${lab}</small><b>${v==null?'–':d?(v>0?'+':'')+v.toFixed(d):sgn(v)}</b><small>${unit}${unit==='kcal'?nn:''}</small></div>`;
+  return `<div class="rep num"><div class="rep-h">주간 리포트 <span>${md(D.ws)} – ${md(D.we)}</span></div>${reportSVG(D)}
+    <div class="rep-stats">${st('주간 평균',D.avg,'kcal')}${st('주간 누적',D.sum,'kcal')}${st('주간 체중',D.wchg,'kg',1)}</div></div>`;
+}
+function reportLine(rep){ const D=rep.data;
+  return `[주간 리포트 ${md(D.ws)}~${md(D.we)}] 기록 ${D.n}일 · 평균 ${D.avg==null?'-':sgn(D.avg)}kcal · 누적 ${D.sum==null?'-':sgn(D.sum)}kcal · 체중 ${D.wchg==null?'-':sgn(D.wchg,1)}kg`; }
+function reportPrompt(){
+  return `너는 식단관리 앱 "${S.settings.appName||'bite with me'}"의 퍼스널 트레이너다. 지난 한 주 기록을 보고 주간 리포트 아래에 붙을 조언을 쓴다.
+- 말투: 적극적이고 친근하며 열정 넘치는 트레이너, 반드시 존댓말. 느낌표(!)와 이모지는 절대 쓰지 않고 문장은 마침표로 끝낸다.
+- 분량: 3~4문장, 한두 문단. 순수 텍스트만(마크다운·목록 기호 없이).
+- 목표 방향은 데이터의 목표방향을 따른다(감량 또는 증량). 감량이면 결핍 유지와 체중 감소를, 증량이면 목표 섭취를 채워 잉여를 만들고 체중이 느는 것을 잘한 것으로 본다.
+- 숫자는 데이터에 있는 값만 쓴다. "기록 없음"인 날은 추측하거나 숫자를 만들어 내지 않는다. 기록 없는 날이 많으면 기록을 이어가자고 짧게 권한다.
+- 잘한 점 하나, 다음 주에 해 볼 구체적인 행동 하나를 넣는다. 다그치지 않는다.`;
+}
+function reportData(rep){ const D=rep.data;
+  return { 기간:`${D.ws} ~ ${D.we}`, 목표방향: D.mode==='bulk'?'증량(벌크업)':'감량', 목표섭취kcal:D.target, 평균소모kcal:D.avgBurn,
+    일별: D.slots.filter(s=>s.inWeek).map(s=>({ 날짜:`${md(s.id)}(${s.dow})`, 잉여결핍kcal: s.has? s.surplus : '기록 없음', 공복체중kg: s.weight||'측정 없음', 전측정대비kg: s.delta==null?'-':s.delta })),
+    요약:{ 기록일수:D.n, 하루평균잉여결핍kcal:D.avg??'-', 주간누적kcal:D.sum??'-', 지난주대비체중kg:D.wchg??'-' } };
+}
+let reportBusy=false;
+async function showWeeklyReport(auto){
+  if (reportBusy || !profileReady()) return;
+  const ws=lastWeekStart(); let rep=S.reports[ws];
+  if (!rep) {
+    const data=buildWeek(ws);
+    if (!data.n && !data.slots.some(s=>s.inWeek && s.weight)) { if (!auto) addMsg('bot','지난주 기록이 없어서 주간 리포트를 만들 수 없어요.', {sys:true}); return; }
+    rep = S.reports[ws] = { ws, data, advice:'', t:Date.now() }; save();
+  }
+  const again = !!rep.advice;
+  reportBusy=true; busy=true; $('#send').disabled=true; renderChat();
+  let advice='';
+  try {
+    if (S.settings.apiKey) {
+      let user = '[지난주 데이터]\n'+JSON.stringify(reportData(rep));
+      if (again) user += '\n\n[처음 보여준 조언]\n'+rep.advice+'\n\n위 조언의 큰 맥락(잘한 점, 다음 주 행동)은 그대로 유지하되 문장은 새로 써라. 숫자는 데이터와 같게.';
+      advice = (await askText(reportPrompt(), user)).replace(/!/g,'.').trim();
+      if (!again && advice) rep.advice = advice;
+    }
+  } catch(e) { advice=''; }
+  finally { reportBusy=false; busy=false; $('#send').disabled=false; }
+  if (!advice) advice = again ? rep.advice : (S.settings.apiKey ? '조언은 AI 연결이 안 돼서 만들지 못했어요. "주간리포트 보여줘"라고 하시면 다시 시도할게요.' : '설정에서 Gemini API 키를 넣으면 주간 조언도 함께 보여드려요.');
+  addMsg('bot', advice, { kind:'report', week:ws, recText:reportLine(rep), sys: !rep.advice });
+  render();
+}
+// 월요일 첫 실행 때 자동으로
+function checkWeeklyReport(){
+  if (!profileReady()) return;
+  const t=todayId(); if (dowOf(t)!==1) return;
+  if (S.reports[lastWeekStart(t)]) return;
+  showWeeklyReport(true);
+}
+const isReportAsk = t => /주간\s*(리포트|레포트|보고서|결산)/.test(t);
+
+/* ============ 남녀 쿠키 아이콘 + 소리 ============ */
+// 섭취가 목표의 80%를 넘으면 뿅↓(뿅5), 아니면 뾰잉(뿅3)
+let actx=null;
+try { if (navigator.audioSession) navigator.audioSession.type='playback'; } catch(_){}
+function audio(){ if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==='suspended') actx.resume(); return actx; }
+function sweep(f0,f1,dur,vol){ const c=audio(), t=c.currentTime, o=c.createOscillator(), g=c.createGain();
+  o.type='square'; o.frequency.setValueAtTime(f0,t); o.frequency.exponentialRampToValueAtTime(f1,t+dur);
+  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+0.008); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(g).connect(c.destination); o.start(t); o.stop(t+dur+0.02); }
+function badgeSound(){ const d=S.cur&&S.days[S.cur]; const s=d?summarize(d):null;
+  if (s && s.tk && s.intake > s.tk*0.8) sweep(1000,220,0.18,0.11);   // 뿅↓
+  else sweep(500,1800,0.14,0.10); }                                   // 뾰잉
+function renderBadge(){ const b=$('#badge'), sx=S.profile.sex;
+  if (sx!=='male' && sx!=='female') { b.classList.remove('on'); return; }
+  const src = sx==='female' ? 'badge-female.png' : 'badge-male.png';
+  const img=b.querySelector('img'); if (!img.src.endsWith(src)) img.src=src; b.classList.add('on'); }
+$('#badge').addEventListener('click', ()=>{ try { badgeSound(); } catch(_){} });
+
 /* ============ 렌더 ============ */
 function renderSummary(){
   const el=$('#summary'); const d=S.cur&&S.days[S.cur];
@@ -707,18 +893,19 @@ function renderChat(){
   for (let i=start;i<S.chat.length;i++){ const m=S.chat[i];
     const dd=ymd(m.t); if (dd!==lastDay){ html+=`<div class="day-sep">${dayTitle(dd)}</div>`; lastDay=dd; }
     let inner = esc(m.text);
+    if (m.kind==='report' && S.reports[m.week]) inner = reportHTML(S.reports[m.week]) + inner;
     if (m.recs) inner += `<div class="rec">` + m.recs.map(x=>`<div class="rec-item"><div class="rec-row"><span class="rn"><span class="tag">${x.k}</span>${esc(x.name)} <em>${esc(x.amount||'')}</em></span><span class="rk num">${N(x.kcal)} kcal</span></div>${x.k==='섭취'?`<div class="rec-m num">탄 ${N(x.carb,1)} · 단 ${N(x.protein,1)} · 지 ${N(x.fat,1)} g</div>`:''}</div>`).join('') + `</div>`;
     if (m.status) inner += `<div class="status num">${esc(m.status)}</div>`;
     if (m.retry && i===S.chat.length-1) inner += `<button class="retry" data-retry="${i}">다시 보내기</button>`;
     html += m.role==='user'
       ? `<div class="msg user"><span class="time">${hm(m.t)}</span><div class="bubble">${inner}</div></div>`
-      : `<div class="msg bot"><div class="bubble">${inner}</div><span class="time">${hm(m.t)}</span></div>`;
+      : `<div class="msg bot"><div class="bubble${m.kind==='report'?' wide':''}">${inner}</div><span class="time">${hm(m.t)}</span></div>`;
   }
   if (busy) html += `<div class="msg bot" id="typing"><div class="bubble typing"><span></span><span></span><span></span></div></div>`;
   box.innerHTML=html; box.scrollTop=box.scrollHeight;
 }
 function showTyping(){ renderChat(); }
-function render(){ renderSummary(); renderChat(); save(); }
+function render(){ renderSummary(); renderBadge(); renderChat(); save(); }
 
 /* ============ 기록 시트 ============ */
 function openSheet(id){ $(id).classList.add('open'); }
@@ -902,10 +1089,10 @@ $('#composer').addEventListener('submit', e=>{ e.preventDefault(); const t=input
   if (qs.has('steps')) { ingestStepMessage(qs.get('steps'), Date.now(), uid()); history.replaceState(null,'',location.pathname); }
   applyAppName();
   if (!S.chat.length) intro();
-  ensureDay(); render();
+  ensureDay(); render(); checkWeeklyReport();
   syncSteps();
-  setInterval(()=>{ syncSteps(); ensureDay(); render(); }, 60*60*1000);                 // 켜져 있는 동안 1시간마다
-  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden){ ensureDay(); render(); syncSteps(); } });
+  setInterval(()=>{ syncSteps(); ensureDay(); render(); checkWeeklyReport(); }, 60*60*1000);                 // 켜져 있는 동안 1시간마다
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden){ ensureDay(); render(); checkWeeklyReport(); syncSteps(); } });
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(()=>{});
 })();
 </script>
