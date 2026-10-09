@@ -31,6 +31,8 @@ header h1{font-size:17px;font-weight:650;margin:0;flex:0 1 auto;min-width:0;lett
 /* 남녀 쿠키 아이콘: 누르면 소리만 (화면 효과 없음) */
 #badge{width:37px;height:37px;flex:none;display:none;border-radius:22%;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 #badge.on{display:block}
+#badge{transition:transform .32s cubic-bezier(.34,1.8,.5,1)}
+#badge:active{transform:scale(.88);transition:transform .07s ease-out}
 #badge img{display:block;width:100%;height:100%;pointer-events:none}
 header h1 small{display:block;font-size:12px;font-weight:450;color:var(--sub);margin-top:1px}
 .icon-btn{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;color:var(--blue)}
@@ -143,7 +145,7 @@ table.hist th:first-child,table.hist td:first-child{text-align:left}
 <header>
   <div class="brand">
     <h1><span id="appName">bite with me</span><small id="dayLabel">&nbsp;</small></h1>
-    <button id="badge" type="button" aria-label="뿅"><img alt="" src="badge-male.png"></button>
+    <button id="badge" type="button" aria-label="뿅" ontouchstart=""><img alt="" src="badge-male.png"></button>
   </div>
   <button class="icon-btn" id="btnExcel" aria-label="엑셀 다운로드" title="엑셀 다운로드">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
@@ -855,19 +857,26 @@ const isReportAsk = t => /주간\s*(리포트|레포트|보고서|결산)/.test(
 // 섭취가 목표의 80%를 넘으면 뿅↓(뿅5), 아니면 뾰잉(뿅3)
 let actx=null;
 try { if (navigator.audioSession) navigator.audioSession.type='playback'; } catch(_){}
-function audio(){ if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==='suspended') actx.resume(); return actx; }
+function audio(){ if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)(); return actx; }
+// 아이폰은 오디오가 '정지' 상태로 시작하고, 앱을 내렸다 올리면 다시 멈춤 → 깨운 뒤에 소리를 예약해야 첫 탭부터 들림
+async function audioReady(){ const c=audio(); if (c.state!=='running') { try { await c.resume(); } catch(_){} }
+  if (!audioReady.unlocked) { const b=c.createBuffer(1,1,22050), s=c.createBufferSource(); s.buffer=b; s.connect(c.destination); s.start(0); audioReady.unlocked=true; }
+  return c; }
 function sweep(f0,f1,dur,vol){ const c=audio(), t=c.currentTime, o=c.createOscillator(), g=c.createGain();
   o.type='square'; o.frequency.setValueAtTime(f0,t); o.frequency.exponentialRampToValueAtTime(f1,t+dur);
   g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+0.008); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
   o.connect(g).connect(c.destination); o.start(t); o.stop(t+dur+0.02); }
-function badgeSound(){ const d=S.cur&&S.days[S.cur]; const s=d?summarize(d):null;
+async function badgeSound(){ await audioReady(); const d=S.cur&&S.days[S.cur]; const s=d?summarize(d):null;
   if (s && s.tk && s.intake > s.tk*0.8) sweep(1000,220,0.18,0.11);   // 뿅↓
   else sweep(500,1800,0.14,0.10); }                                   // 뾰잉
 function renderBadge(){ const b=$('#badge'), sx=S.profile.sex;
   if (sx!=='male' && sx!=='female') { b.classList.remove('on'); return; }
   const src = sx==='female' ? 'badge-female.png' : 'badge-male.png';
   const img=b.querySelector('img'); if (!img.src.endsWith(src)) img.src=src; b.classList.add('on'); }
-$('#badge').addEventListener('click', ()=>{ try { badgeSound(); } catch(_){} });
+$('#badge').addEventListener('click', ()=>{ badgeSound().catch(()=>{}); });
+// 화면을 처음 만질 때 오디오를 미리 깨워 둠
+['touchend','click'].forEach(ev=>document.addEventListener(ev, ()=>{ if(!actx || actx.state!=='running') audioReady().catch(()=>{}); }, {passive:true}));
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && actx && actx.state!=='running') actx.resume().catch(()=>{}); });
 
 /* ============ 렌더 ============ */
 function renderSummary(){
