@@ -1,3 +1,5 @@
+// 버전 기록: dietnote-v10 이후로 버전 번호를 v2.1부터 다시 시작(리부트)함.
+// 다음 업데이트부터 캐시 이름은 'dietnote-v2.1', 'dietnote-v2.2' … 이고, 설정창 하단에 표시되는 버전과 같게 맞춘다.
 const V = 'dietnote-v10';
 const SHELL = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png', './badge-male.png', './badge-female.png'];
 self.addEventListener('install', e => {
