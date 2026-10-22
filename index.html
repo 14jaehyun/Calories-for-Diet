@@ -61,6 +61,8 @@ header h1 small{display:block;font-size:12px;font-weight:450;color:var(--sub);ma
 
 /* chat */
 #chat{flex:1;overflow-y:auto;padding:8px 12px 12px;-webkit-overflow-scrolling:touch}
+/* 대화가 화면보다 짧으면 아래쪽에 붙임 (대화 앞이 공백) → 키보드가 올라와도 대화 끝이 키보드 바로 위 */
+.chat-in{display:flex;flex-direction:column;justify-content:flex-end}
 .msg{display:flex;margin:7px 0}
 .msg.user{justify-content:flex-end}
 .bubble{max-width:84%;padding:9px 12px;border-radius:16px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
@@ -247,7 +249,7 @@ table.hist th:first-child,table.hist td:first-child{text-align:left}
 /* ============ 저장소 ============ */
 const LS = 'dietnote.v1';
 const APP_NAME = 'bite with me!';
-const APP_VERSION = 'v1.3.0';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
+const APP_VERSION = 'v1.3.1';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
 const DEFAULT_MODEL = 'gemini-flash-latest';
 const KCAL_PER_KG = 7700;
 const NEW_DAY_HOUR = 4;               // 이 시각 이전은 전날로 취급
@@ -839,7 +841,7 @@ let busy=false;
 async function handle(text){
   text=text.trim(); if(!text||busy) return;
   finishTyping();                                        // 답변이 아직 나오는 중이면 바로 끝까지 보여주고 진행
-  SCR.sendPending=true;                                   // 이 질문을 화면 맨 위로
+  SCR.sendPending=true; SCR.spacer=true;                  // 이 질문을 화면 맨 위로
   addMsg('user', text);
   // 1) 첫 설정
   if (!profileReady()) {
@@ -1109,10 +1111,11 @@ function renderChat(){
   if (busy) html += `<div class="msg bot" id="typing"><div class="bubble typing"><span></span><span></span><span></span></div></div>`;
   if (lu>=0) html += `</div>`;
   const keep = box.scrollTop;
-  box.innerHTML=html;
-  const turn=box.querySelector('.turn.last'); if (turn) turn.style.minHeight = Math.max(0, box.clientHeight - 20) + 'px';
+  box.innerHTML=`<div class="chat-in"><div>${html}</div></div>`;
+  fitChat();
   if (SCR.sendPending) {                                  // 방금 질문을 보냄 → 그 질문을 0.3초 부드러운 스크롤로 맨 위에
     SCR.sendPending=false; box.scrollTop=keep;
+    const turn=box.querySelector('.turn.last');
     if (turn) smoothScroll(box.scrollTop + turn.getBoundingClientRect().top - box.getBoundingClientRect().top - 2, SCROLL_MS);
     return; }
   if (SCR.anim || TW.m) { box.scrollTop=keep;            // 질문이 올라가는 중이거나 답변 표출 중: 보던 위치 유지
@@ -1123,7 +1126,21 @@ function renderChat(){
 }
 /* 질문 올리기 스크롤: 처음 빠르게, 끝에서 감속 */
 const SCROLL_MS = 300;
-const SCR = { sendPending:false, anim:false, keepOnce:false, raf:0 };
+const SCR = { sendPending:false, anim:false, keepOnce:false, raf:0, spacer:false };
+// 높이 맞추기: 대화 전체는 화면 높이 이상(짧으면 아래 정렬), 방금 보낸 질문 묶음은 화면 높이만큼 자리 (질문을 맨 위로 올리기용)
+function fitChat(){ const box=$('#chat'), h=Math.max(0, box.clientHeight-20);
+  const inn=box.querySelector('.chat-in'); if (inn) inn.style.minHeight=h+'px';
+  const turn=box.querySelector('.turn.last'); if (turn) turn.style.minHeight = SCR.spacer ? h+'px' : ''; }
+// 입력칸을 누르면(키보드가 올라옴): 질문 묶음의 빈 공간을 없애서 대화를 아래로 내려 대화 끝이 키보드 바로 위에 오게.
+// 이전 대화 중간을 보던 중이면 그 자리 그대로
+$('#input').addEventListener('focus', ()=>{ if (!SCR.spacer || busy || TW.m) return;
+  const box=$('#chat'), turn=box.querySelector('.turn.last');
+  const looking = turn && turn.getBoundingClientRect().top < box.getBoundingClientRect().bottom - 10;   // 마지막 질문이 화면에 보이는 중
+  SCR.spacer=false; fitChat();
+  if (looking) { const toEnd=()=>{ box.scrollTop=box.scrollHeight; }; toEnd(); setTimeout(toEnd,120); setTimeout(toEnd,350); }   // 키보드 올라오는 동안에도 맞춤
+});
+// 화면 높이가 바뀌면(키보드, 회전) 높이 다시 맞춤
+(window.visualViewport||window).addEventListener('resize', ()=>{ const box=$('#chat'), end=atEnd(); fitChat(); if (end && !SCR.anim) box.scrollTop=box.scrollHeight; });
 function smoothScroll(y, ms){ const box=$('#chat'); cancelAnimationFrame(SCR.raf);
   y=Math.max(0, Math.min(y, box.scrollHeight-box.clientHeight));
   const y0=box.scrollTop, d=y-y0, t0=performance.now(); SCR.anim=true;
