@@ -138,11 +138,12 @@ header h1 small{display:block;font-size:12px;font-weight:450;color:var(--sub);ma
 .hint{font-size:12.5px;color:var(--sub);line-height:1.55;margin:6px 0}
 .code{font-family:ui-monospace,Menlo,monospace;font-size:12px;background:var(--soft2);border:1px solid var(--line);border-radius:8px;padding:8px;word-break:break-all;margin:6px 0}
 .row2{display:flex;gap:8px}.row2 .btn{flex:1}
+.ver{text-align:center;font-size:11.5px;color:var(--faint);margin:18px 0 0}
 /* 토큰 사용량 (고쉐와 같은 양식) */
 .usage{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:2px;font-variant-numeric:tabular-nums}
-.usage th{font-weight:600;color:var(--faint);text-align:right;padding:7px 2px;border-bottom:1px solid var(--line)}
+.usage th{font-weight:600;color:var(--faint);text-align:right;padding:4px 2px;border-bottom:1px solid var(--line)}
 .usage th:first-child,.usage td:first-child{text-align:left}
-.usage td{text-align:right;padding:8px 2px;border-bottom:1px solid var(--line)}
+.usage td{text-align:right;padding:5px 2px;border-bottom:1px solid var(--line)}
 .usage tr.tot td{font-weight:700;border-bottom:none}
 .ureset{display:flex;align-items:center;justify-content:space-between;font-size:12.5px;color:var(--sub);margin-top:6px}
 .ureset button{color:var(--blue);font-weight:600;padding:4px 2px}
@@ -228,6 +229,7 @@ table.hist th:first-child,table.hist td:first-child{text-align:left}
       <input type="file" id="importFile" accept=".json,application/json,text/plain" hidden>
       <button class="btn danger" id="resetAll">전체 초기화</button>
       <p class="hint">초기화하면 모든 기록이 지워지고 처음부터 다시 시작합니다. 먼저 엑셀이나 백업을 저장해 두세요.</p>
+      <p class="ver" id="appVer"></p>
     </div>
   </section>
 </div>
@@ -238,6 +240,7 @@ table.hist th:first-child,table.hist td:first-child{text-align:left}
 'use strict';
 /* ============ 저장소 ============ */
 const LS = 'dietnote.v1';
+const APP_VERSION = 'v2.1';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
 const DEFAULT_MODEL = 'gemini-flash-latest';
 const KCAL_PER_KG = 7700;
 const NEW_DAY_HOUR = 4;               // 이 시각 이전은 전날로 취급
@@ -382,8 +385,9 @@ function goSleep(now=Date.now()){
 }
 
 /* ============ 기록 동작 ============ */
-function setMorningWeight(kg){
+function setMorningWeight(kg, at=Date.now()){
   const d = ensureDay(); kg = r1(kg);
+  d.weighAt = at;                  // 측정 시각 (기록 화면 아침 측정에 표시)
   const prevW = latestWeightBefore(d) || S.profile.weight;
   const p = prevDay(d);
   d.weightAM = kg;
@@ -400,6 +404,26 @@ function setMorningWeight(kg){
   return t;
 }
 function setBodyFat(v){ const d=ensureDay(); d.bodyFat=r1(v); return `체지방률 ${d.bodyFat}% 기록했어요.`; }
+// 아침 측정 삭제(✕): 비워 두면 다음에 들어오는 측정을 다시 그날 첫 측정으로 기록
+function clearMorning(d){
+  d.weightAM=null; d.bodyFat=null; d.weighAt=null; d.actualChange=null; d.prevExpected=null;
+  const w = latestWeightBefore(d) || S.profile.weight; if (latestWeightBefore(d)) S.profile.weight = latestWeightBefore(d);
+  d.bmr = calcBMR(w); }
+// 체성분 자동 기록 (단축어: 앳플리 닫을 때 "w78.4_f18.2")
+// 새벽 4시 기준 오늘 아침 측정이 비어 있을 때만 기록 → 하루 첫 측정만 남음. 측정 시각 = 단축어가 보낸 시각
+function ingestBody(msg, t){
+  const w = parseFloat((msg.replace(/,/g,'.').match(/w\s*(\d+(?:\.\d+)?)/i)||[])[1]);
+  let f = parseFloat((msg.replace(/,/g,'.').match(/f\s*(\d+(?:\.\d+)?)/i)||[])[1]);
+  if (!(w>20 && w<400)) return 0;                       // 오늘 측정값이 없으면(빈 메시지) 무시
+  if (f>0 && f<1) f = f*100;                            // 0.182 → 18.2%
+  if (!profileReady()) return 0;
+  if (logicalDate(t) !== logicalDate(Date.now())) return 0;   // 지난 날 측정은 무시
+  const d = ensureDay(); if (!d || d.weightAM) return 0;      // 이미 측정이 있으면 그대로 둠
+  let txt = setMorningWeight(w, t);
+  if (f>0 && f<80) txt = txt.replace('기록했어요.', `· 체지방률 ${r1(f)}% 기록했어요.`), setBodyFat(f);
+  addMsg('bot', `체중계에서 아침 측정을 가져왔어요 (${hm(t)})\n` + txt, {sys:true});
+  return 1;
+}
 function addSteps(count, t=Date.now(), id, kind, day){ count=Math.round(count); if(!(count>=0)) return;
   if (id && S.steps.some(s=>s.id===id)) return;
   const x={t, count, id:id||uid()}; if (kind==='L') { x.kind='L'; x.day=day; }
@@ -1035,14 +1059,18 @@ function renderDaySheet(){
   h += d.foods.length ? d.foods.map(x=>`<div class="list-item"><div class="grow">${esc(x.name)} <span style="color:var(--sub)">${esc(x.amount||'')}</span><small>${hm(x.t)} · 탄${N(x.carb,1)} 단${N(x.protein,1)} 지${N(x.fat,1)}g</small></div><span class="num">${N(x.kcal)} kcal</span>${del('f',x.id)}</div>`).join('') : '<p class="empty">아직 먹은 기록이 없어요.</p>';
   const memoList = S.notes.filter(n=>n.date>=nextDate(d.id,-1)).slice(0,30);
   h += `<div class="sec">메모·일정</div>` + (memoList.length ? memoList.map(n=>`<div class="list-item"><div class="grow">${esc(n.text)}<small>${relDay(n.date)} · ${n.date.slice(5).replace('-','/')}</small></div><button class="del" data-note="${n.id}" aria-label="메모 삭제"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>`).join('') : '<p class="empty">채팅으로 "오늘 저녁 회식 있어"처럼 말하면 메모돼요. AI는 어제·오늘·내일 메모를 감안해 조언해요.</p>');
-  h += `<div class="sec">아침 측정</div><div class="list-item"><div class="grow">공복 몸무게 ${d.weightAM? d.weightAM+' kg':'-'} · 체지방률 ${d.bodyFat? d.bodyFat+'%':'-'}
-    ${d.actualChange!=null?`<small>전일 대비 ${sgn(d.actualChange,1)} kg${d.prevExpected!=null?` · 예상 ${sgn(d.prevExpected,2)} kg`:''}</small>`:''}</div></div>`;
+  const hasM = d.weightAM || d.bodyFat;
+  h += `<div class="sec">아침 측정</div><div class="list-item"><div class="grow">공복 몸무게 ${d.weightAM? d.weightAM+' kg':'-'} · 체지방률 ${d.bodyFat? d.bodyFat+'%':'-'}${hasM && d.weighAt? ` · ${hm(d.weighAt)}`:''}
+    ${d.actualChange!=null?`<small>전일 대비 ${sgn(d.actualChange,1)} kg${d.prevExpected!=null?` · 예상 ${sgn(d.prevExpected,2)} kg`:''}</small>`:''}</div>${hasM? `<button class="del" data-morning aria-label="아침 측정 삭제"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>`:''}</div>`;
   const ids=sortedIds().reverse().slice(0,14);
   h += `<div class="sec">최근 기록</div><table class="hist num"><tr><th>날짜</th><th>섭취</th><th>소모</th><th>잉여/결핍</th><th>체중</th></tr>` +
     ids.map(i=>{ const x=S.days[i], z=summarize(x); return `<tr><td>${i.slice(5).replace('-','/')}</td><td>${N(z.intake)}</td><td>${N(z.burn)}</td><td class="${z.surplus>0?'pos':'neg'}">${sgn(z.surplus)}</td><td>${x.weightAM||'-'}</td></tr>`; }).join('') + `</table>`;
   b.innerHTML=h;
   b.querySelectorAll('[data-note]').forEach(btn=>btn.addEventListener('click',()=>{
     const n=removeNote(btn.dataset.note); if(n){ toast(`메모 "${n.text}" 삭제됨`); save(); renderDaySheet(); }
+  }));
+  b.querySelectorAll('[data-morning]').forEach(btn=>btn.addEventListener('click',()=>{
+    clearMorning(d); save(); toast('아침 측정을 지웠어요'); render(); renderDaySheet();
   }));
   b.querySelectorAll('[data-del]').forEach(btn=>btn.addEventListener('click',()=>{
     const [k,id]=btn.dataset.del.split(':'); const arr = k==='f'?d.foods:d.exercises; const i=arr.findIndex(x=>x.id===id);
@@ -1097,6 +1125,7 @@ function fillSettings(){
   $('#stepUrl').textContent = stepUrl();
   const st=stepStatus(); $('#syncInfo').textContent = st? `마지막 걸음 데이터: ${st.when} 받음 · 오늘 ${N(st.count)}보` : '아직 받은 걸음 데이터가 없어요.';
   $('#usage').innerHTML = usageHTML();
+  $('#appVer').textContent = APP_VERSION;
 }
 $('#btnSettings').addEventListener('click', ()=>{ fillSettings(); resetArm=false; $('#resetAll').textContent='전체 초기화'; openSheet('#setSheet'); });
 $('#saveProfile').addEventListener('click', ()=>{
@@ -1219,6 +1248,7 @@ $('#btnExcel').addEventListener('click', exportExcel);
 //  "6810_12034"  → 새 방식: 오늘 새벽 4시 이후 걸음 _ 어제 4시~오늘 4시 걸음
 // 쉼표(천 단위)는 무시하고, 6810.0 같은 소수점도 올바르게 읽음
 function ingestStepMessage(msg, t, id){
+  if (/^\s*w/i.test(msg)) return ingestBody(msg, t);       // 체성분 메시지는 걸음으로 읽지 않음
   const nums=(msg.replace(/,/g,'').match(/\d+(?:\.\d+)?/g)||[]).map(parseFloat).filter(x=>isFinite(x));
   if (!nums.length) return 0;
   const before=S.steps.length;
