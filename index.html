@@ -247,7 +247,7 @@ table.hist th:first-child,table.hist td:first-child{text-align:left}
 /* ============ 저장소 ============ */
 const LS = 'dietnote.v1';
 const APP_NAME = 'bite with me!';
-const APP_VERSION = 'v1.2.8';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
+const APP_VERSION = 'v1.2.9';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
 const DEFAULT_MODEL = 'gemini-flash-latest';
 const KCAL_PER_KG = 7700;
 const NEW_DAY_HOUR = 4;               // 이 시각 이전은 전날로 취급
@@ -816,19 +816,16 @@ function twLayout(){
   TW.bottoms = [...el.children].map(c=>c.offsetTop+c.offsetHeight);   // 줄마다 아래 끝 위치 (말풍선 높이 계산용)
   twGrow(el);
   TW.end = setTimeout(finishTyping, Math.max(0,TW.textIdx.length-1)*TW_GAP + TW_FADE + 50);
-  // 화면 따라가기: 답변 첫 줄이 보이게 두고, 말풍선이 늘어나는 만큼 아래로 (위로 올려 읽는 중이면 따라가지 않음)
-  const box=$('#chat'); const rel = r => r.top - box.getBoundingClientRect().top + box.scrollTop;
-  box.scrollTop = Math.min(box.scrollHeight - box.clientHeight, rel(bub.getBoundingClientRect()) - 8);
-  let last = box.scrollTop, following = true;
+  // 화면 따라가기: 말풍선이 늘어나는 대로 말풍선 끝을 따라 내려감
+  // 사용자가 손가락으로 직접 스크롤하면 그 답변이 끝날 때까지 따라가지 않음 (키보드가 내려가며 화면 높이가 바뀌는 건 무시)
+  const box=$('#chat'); TW.userScrolled=false; box.scrollTop=box.scrollHeight;
   clearInterval(TW.follow);
   TW.follow = setInterval(()=>{ if (!TW.m) { clearInterval(TW.follow); return; }
-    const e=document.querySelector('#chat .tw-text'); twGrow(e);
-    if (!following) return;
-    if (Math.abs(box.scrollTop - last) > 4) { following=false; return; }          // 사용자가 직접 스크롤함
-    const want = Math.min(box.scrollHeight - box.clientHeight, rel(e.closest('.msg').getBoundingClientRect()) + e.closest('.msg').offsetHeight - box.clientHeight + 8);
-    if (want > box.scrollTop) box.scrollTop = want; last = box.scrollTop;
+    twGrow(document.querySelector('#chat .tw-text'));
+    if (!TW.userScrolled) box.scrollTop = box.scrollHeight;
   }, 30);
 }
+['touchmove','wheel'].forEach(ev=>$('#chat').addEventListener(ev, ()=>{ if (TW.m) TW.userScrolled=true; }, {passive:true}));
 document.addEventListener('visibilitychange', ()=>{ if (document.hidden) finishTyping(); });
 function addMsg(role, text, extra={}){ const m={role, text, t:Date.now(), ...extra}; S.chat.push(m);
   if (TW.next) { TW.next=false; if (role==='bot' && text) { finishTyping(); TW.m=m; TW.lines=null; } } if (S.chat.length>400) S.chat=S.chat.slice(-400); save(); renderChat(); return m; }
@@ -1103,7 +1100,7 @@ function renderChat(){
   if (busy) html += `<div class="msg bot" id="typing"><div class="bubble typing"><span></span><span></span><span></span></div></div>`;
   const keep = box.scrollTop;
   box.innerHTML=html; box.scrollTop=box.scrollHeight;
-  if (TW.m) { if (!TW.lines) twLayout(); else box.scrollTop = keep; }   // 줄 표출 중 다시 그려도 보던 위치 유지
+  if (TW.m) { if (!TW.lines) twLayout(); else box.scrollTop = TW.userScrolled ? keep : box.scrollHeight; }   // 줄 표출 중 다시 그려도 따라가기 유지
 }
 function showTyping(){ renderChat(); }
 function render(){ renderSummary(); renderBadge(); renderChat(); save(); }
