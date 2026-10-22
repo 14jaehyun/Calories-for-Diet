@@ -240,7 +240,7 @@ table.hist th:first-child,table.hist td:first-child{text-align:left}
 'use strict';
 /* ============ 저장소 ============ */
 const LS = 'dietnote.v1';
-const APP_VERSION = 'v1.2.2';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
+const APP_VERSION = 'v1.2.3';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
 const DEFAULT_MODEL = 'gemini-flash-latest';
 const KCAL_PER_KG = 7700;
 const NEW_DAY_HOUR = 4;               // 이 시각 이전은 전날로 취급
@@ -777,10 +777,29 @@ function applyActions(actions){
 }
 
 /* ============ 채팅 ============ */
-function addMsg(role, text, extra={}){ const m={role, text, t:Date.now(), ...extra}; S.chat.push(m); if (S.chat.length>400) S.chat=S.chat.slice(-400); save(); renderChat(); return m; }
+/* AI 답변을 한 번에 띄우지 않고 AI 앱처럼 순서대로 촤라락 표시 */
+const TW = { m:null, n:0, timer:null, next:false };
+function typeNextMsg(){ TW.next=true; }                 // 바로 다음 addMsg를 타이핑 효과로
+function finishTyping(){ if (!TW.m) return; clearInterval(TW.timer); TW.m=null; renderChat(); }
+function startTyping(m){
+  clearInterval(TW.timer); TW.m=m; TW.n=0;
+  const len=m.text.length, step=Math.max(2, Math.ceil(len/180));   // 초당 약 60자, 아주 긴 답변도 6초 안쪽
+  TW.timer=setInterval(()=>{
+    TW.n=Math.min(len, TW.n+step);
+    const el=document.querySelector('#chat .tw-text'), box=$('#chat');
+    if (!el || TW.n>=len) { finishTyping(); return; }
+    const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
+    el.textContent = m.text.slice(0, TW.n);
+    if (atBottom) box.scrollTop = box.scrollHeight;          // 위로 올려 읽는 중이면 따라 내려가지 않음
+  }, 33);
+}
+document.addEventListener('visibilitychange', ()=>{ if (document.hidden) finishTyping(); });
+function addMsg(role, text, extra={}){ const m={role, text, t:Date.now(), ...extra}; S.chat.push(m);
+  if (TW.next) { TW.next=false; if (role==='bot' && text) { finishTyping(); TW.m=m; TW.n=0; } } if (S.chat.length>400) S.chat=S.chat.slice(-400); save(); renderChat(); if (TW.m===m && TW.n===0) startTyping(m); return m; }
 let busy=false;
 async function handle(text){
   text=text.trim(); if(!text||busy) return;
+  finishTyping();                                        // 답변이 아직 나오는 중이면 바로 끝까지 보여주고 진행
   addMsg('user', text);
   // 1) 첫 설정
   if (!profileReady()) {
@@ -836,6 +855,7 @@ async function runAI(text){
     if (profileReady()) ensureDay();
     const recText = recs.map(x=>`[${x.k}] ${x.name} ${x.amount} ${x.kcal}kcal`).join('\n');
     let txt = r.reply; if (notes.length) txt += (txt?'\n':'') + notes.join('\n');
+    typeNextMsg();
     addMsg('bot', txt || '기록했어요.', { recs: recs.length?recs:undefined, recText: recText||undefined });
   } catch(e) {
     addMsg('bot', (e && e.message) || 'AI에 연결하지 못했어요.', {sys:true, retry:text});
@@ -949,6 +969,7 @@ async function showWeeklyReport(auto){
   } catch(e) { advice=''; }
   finally { reportBusy=false; busy=false; $('#send').disabled=false; }
   if (!advice) advice = again ? rep.advice : (S.settings.apiKey ? '조언은 AI 연결이 안 돼서 만들지 못했어요. "주간리포트 보여줘"라고 하시면 다시 시도할게요.' : '설정에서 Gemini API 키를 넣으면 주간 조언도 함께 보여드려요.');
+  if (rep.advice) typeNextMsg();
   addMsg('bot', advice, { kind:'report', week:ws, recText:reportLine(rep), sys: !rep.advice });
   render();
 }
@@ -994,15 +1015,15 @@ function tone(c, o, f, type, vol, dec){ const t=c.currentTime+0.005, os=c.create
 async function tok(){ const c=await audioReady(); const o=bus(c,.38); tone(c,o,2093,'triangle',.7,.16); tone(c,o,4186,'sine',.15,.08); loadSamples(c); }
 async function tung(){ const c=await audioReady(); loadSamples(c); const b=BUF.tung;
   if (!b || b==='loading') return;            // 처음 한 번은 읽는 중이면 조용히 넘어감
-  const s=c.createBufferSource(); s.buffer=b; s.connect(bus(c,.675)); s.start(c.currentTime+0.005); }   // 낮은 소리는 폰 스피커에서 작게 들려 삑보다 조금 크게
-// 버튼을 누르면 삑 (남녀 아이콘은 자기 소리가 있어서 제외, 채팅 입력칸은 버튼이 아니라 소리 없음, 보내기 화살표는 삑)
-document.addEventListener('click', e=>{ const b=e.target.closest('button'); if (!b || b.id==='badge' || b.disabled) return; tok().catch(()=>{}); }, true);
+  const s=c.createBufferSource(); s.buffer=b; s.connect(bus(c,1.125)); s.start(c.currentTime+0.005); }   // 낮은 소리는 폰 스피커에서 작게 들려 삑보다 조금 크게
+// 버튼을 누르면 삑 (남녀 아이콘은 자기 소리가 있어서 제외, 채팅 입력칸·보내기 화살표는 소리 없음)
+document.addEventListener('click', e=>{ const b=e.target.closest('button'); if (!b || b.id==='badge' || b.id==='send' || b.disabled) return; tok().catch(()=>{}); }, true);
 // 앱을 켜고 첫 터치 때 효과음 파일을 미리 읽어 둠
 document.addEventListener('touchstart', ()=>{ try { loadSamples(audio()); } catch(_){} }, {once:true, passive:true});
 
 async function badgeSound(){ await audioReady(); const d=S.cur&&S.days[S.cur]; const s=d?summarize(d):null;
-  if (s && s.tk && s.intake > s.tk*0.8) sweep(1000,220,0.18,0.055);  // 뿅↓ (v1.2.2에서 음량 50%로)
-  else sweep(500,1800,0.14,0.05); }                                   // 뾰잉
+  if (s && s.tk && s.intake > s.tk*0.8) sweep(1000,220,0.18,0.022);  // 뿅↓ (처음 음량의 20%)
+  else sweep(500,1800,0.14,0.02); }                                   // 뾰잉
 function renderBadge(){ const b=$('#badge'), sx=S.profile.sex;
   if (sx!=='male' && sx!=='female') { b.classList.remove('on'); return; }
   const src = sx==='female' ? 'badge-female.png' : 'badge-male.png';
@@ -1034,9 +1055,10 @@ function renderChat(){
   const start=Math.max(0,S.chat.length-150);
   for (let i=start;i<S.chat.length;i++){ const m=S.chat[i];
     const dd=ymd(m.t); if (dd!==lastDay){ html+=`<div class="day-sep">${dayTitle(dd)}</div>`; lastDay=dd; }
-    let inner = esc(m.text);
+    const typing = TW.m===m;
+    let inner = typing ? `<span class="tw-text">${esc(m.text.slice(0,TW.n))}</span>` : esc(m.text);
     if (m.kind==='report' && S.reports[m.week]) inner = reportHTML(S.reports[m.week]) + inner;
-    if (m.recs) inner += `<div class="rec">` + m.recs.map(x=>`<div class="rec-item"><div class="rec-row"><span class="rn"><span class="tag">${x.k}</span>${esc(x.name)} <em>${esc(x.amount||'')}</em></span><span class="rk num">${N(x.kcal)} kcal</span></div>${x.k==='섭취'?`<div class="rec-m num">탄 ${N(x.carb,1)} · 단 ${N(x.protein,1)} · 지 ${N(x.fat,1)} g</div>`:''}</div>`).join('') + `</div>`;
+    if (m.recs && !typing) inner += `<div class="rec">` + m.recs.map(x=>`<div class="rec-item"><div class="rec-row"><span class="rn"><span class="tag">${x.k}</span>${esc(x.name)} <em>${esc(x.amount||'')}</em></span><span class="rk num">${N(x.kcal)} kcal</span></div>${x.k==='섭취'?`<div class="rec-m num">탄 ${N(x.carb,1)} · 단 ${N(x.protein,1)} · 지 ${N(x.fat,1)} g</div>`:''}</div>`).join('') + `</div>`;
     if (m.retry && i===S.chat.length-1) inner += `<button class="retry" data-retry="${i}">다시 보내기</button>`;
     html += m.role==='user'
       ? `<div class="msg user"><span class="time">${hm(m.t)}</span><div class="bubble">${inner}</div></div>`
