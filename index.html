@@ -66,7 +66,10 @@ header h1 small{display:block;font-size:12px;font-weight:450;color:var(--sub);ma
 .bubble{max-width:84%;padding:9px 12px;border-radius:16px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
 .user .bubble{background:var(--blue);color:#fff;border-bottom-right-radius:5px}
 .bot .bubble{background:var(--soft);border-bottom-left-radius:5px}
-.ck{opacity:0;animation:fadeIn .3s ease-out forwards}   /* 답변 덩어리 페이드인 */
+/* 답변 줄 단위 페이드인: 한 줄씩 차례로, 두세 줄이 겹쳐서 부드럽게 */
+.tw-measure{visibility:hidden}
+.ln{display:block;opacity:0;animation:fadeIn .52s ease-out forwards}
+.ln.blank{opacity:1;animation:none}
 .time{font-size:10.5px;color:var(--faint);align-self:flex-end;margin:0 5px 2px}
 .rec{margin-top:8px;padding-top:8px;border-top:1px solid #d9e2ea;font-size:13px}
 .rec-item{padding:2px 0}
@@ -242,7 +245,7 @@ table.hist th:first-child,table.hist td:first-child{text-align:left}
 'use strict';
 /* ============ 저장소 ============ */
 const LS = 'dietnote.v1';
-const APP_VERSION = 'v1.2.6';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
+const APP_VERSION = 'v1.2.7';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
 const DEFAULT_MODEL = 'gemini-flash-latest';
 const KCAL_PER_KG = 7700;
 const NEW_DAY_HOUR = 4;               // 이 시각 이전은 전날로 취급
@@ -779,34 +782,45 @@ function applyActions(actions){
 }
 
 /* ============ 채팅 ============ */
-/* AI 답변을 한 번에 띄우지 않고 AI 앱처럼 덩어리로 나눠 빠르게 페이드인
-   덩어리: 띄어쓰기 기준, 공백 뺀 11자 이상 모이면 한 덩어리 (말풍선 한 줄이 2~3덩어리), 줄바꿈에서는 무조건 끊음
-   속도: 덩어리 간격 0.11초, 페이드 0.3초 (시안 '느림') */
-const TW = { m:null, cs:[], n:0, timer:null, end:null, next:false };
-const TW_GAP = 110, TW_FADE = 300;
-function twChunks(t){ const out=[]; let cur='';
-  for (const tok of String(t).split(/(\s+)/)) {
-    if (tok.includes('\n')) { if (cur) out.push(cur); out.push(tok); cur=''; continue; }
-    cur += tok;
-    if (cur.replace(/\s/g,'').length >= 11 && !/\s$/.test(cur)) { out.push(cur); cur=''; }
-  }
-  if (cur) out.push(cur); return out; }
-function typeNextMsg(){ TW.next=true; }                 // 바로 다음 addMsg를 덩어리 표출로
-function finishTyping(){ if (!TW.m) return; clearInterval(TW.timer); clearTimeout(TW.end); TW.m=null; renderChat(); }
-function startTyping(m){
-  clearInterval(TW.timer); clearTimeout(TW.end);
-  TW.timer=setInterval(()=>{
-    const el=document.querySelector('#chat .tw-text'), box=$('#chat');
-    if (!el) { finishTyping(); return; }
-    if (TW.n>=TW.cs.length) { clearInterval(TW.timer); TW.end=setTimeout(finishTyping, TW_FADE); return; }
-    const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
-    const sp=document.createElement('span'); sp.className='ck'; sp.textContent=TW.cs[TW.n++]; el.appendChild(sp);
-    if (atBottom) box.scrollTop = box.scrollHeight;          // 위로 올려 읽는 중이면 따라 내려가지 않음
-  }, TW_GAP);
+/* AI 답변을 한 번에 띄우지 않고 줄 단위로 페이드인 (시안 '보통', 페이드만)
+   - 말풍선에서 실제로 줄이 바뀌는 위치 그대로 한 줄씩 나눔
+   - 다음 줄은 0.17초 뒤 시작, 한 줄 페이드 0.52초 → 늘 세 줄 정도가 겹쳐 차오름
+   - 빈 줄(문단 사이)은 순서에 넣지 않아 멈칫하지 않음 */
+const TW = { m:null, lines:null, start:0, end:null, follow:null, next:false };
+const TW_GAP = 170, TW_FADE = 520;
+function typeNextMsg(){ TW.next=true; }                 // 바로 다음 addMsg를 줄 단위 표출로
+function finishTyping(){ if (!TW.m) return; clearTimeout(TW.end); clearInterval(TW.follow); TW.m=null; TW.lines=null; renderChat(); }
+// 줄마다 시작 시각: 빈 줄은 건너뛰고 글자 있는 줄만 차례로. 다시 그려도 이어서 진행되게 지난 시간만큼 당김
+function twLinesHTML(){ const el=Date.now()-TW.start; let k=0;
+  return TW.lines.map(l=> l.trim()==='' ? `<span class="ln blank">\u00a0</span>`
+    : `<span class="ln" style="animation-delay:${(k++)*TW_GAP - el}ms">${esc(l)}</span>`).join(''); }
+// 화면에 보이지 않게 글을 깔고 글자마다 위치를 재서 같은 높이끼리 한 줄로 묶음
+function twLayout(){
+  const el=document.querySelector('#chat .tw-text'); if (!el) return;
+  el.innerHTML=''; const spans=[...TW.m.text].map(ch=>{ const s=document.createElement('span'); s.textContent=ch; el.appendChild(s); return s; });
+  const lines=[]; let top=null, cur='';
+  spans.forEach(sp=>{ const t=sp.offsetTop; if (top!==null && t>top+2) { lines.push(cur); cur=''; } top=t; cur+=sp.textContent; });
+  lines.push(cur);
+  TW.lines = lines.map(l=>l.replace(/\n/g,''));
+  TW.start = Date.now(); el.classList.remove('tw-measure'); el.innerHTML = twLinesHTML();
+  const n = TW.lines.filter(l=>l.trim()!=='').length;
+  TW.end = setTimeout(finishTyping, Math.max(0,n-1)*TW_GAP + TW_FADE + 50);
+  // 화면 따라가기: 답변 첫 줄이 보이게 두고, 새 줄이 나타나는 만큼 아래로 (위로 올려 읽는 중이면 따라가지 않음)
+  const box=$('#chat'), bub=el.closest('.bubble');
+  box.scrollTop = Math.min(box.scrollHeight - box.clientHeight, bub.offsetTop - 8);
+  let last = box.scrollTop;
+  clearInterval(TW.follow);
+  TW.follow = setInterval(()=>{ if (!TW.m) { clearInterval(TW.follow); return; }
+    if (Math.abs(box.scrollTop - last) > 4) { clearInterval(TW.follow); return; }   // 사용자가 직접 스크롤함
+    const txt = [...el.querySelectorAll('.ln:not(.blank)')];               // 지금 나타나고 있는 줄
+    const ln = txt[Math.min(txt.length-1, Math.floor((Date.now()-TW.start)/TW_GAP))]; if (!ln) return;
+    const want = Math.min(box.scrollHeight - box.clientHeight, ln.offsetTop + ln.offsetHeight - box.clientHeight + 24);
+    if (want > box.scrollTop) { box.scrollTop = want; } last = box.scrollTop;
+  }, 60);
 }
 document.addEventListener('visibilitychange', ()=>{ if (document.hidden) finishTyping(); });
 function addMsg(role, text, extra={}){ const m={role, text, t:Date.now(), ...extra}; S.chat.push(m);
-  if (TW.next) { TW.next=false; if (role==='bot' && text) { finishTyping(); TW.m=m; TW.cs=twChunks(text); TW.n=0; } } if (S.chat.length>400) S.chat=S.chat.slice(-400); save(); renderChat(); if (TW.m===m && TW.n===0) startTyping(m); return m; }
+  if (TW.next) { TW.next=false; if (role==='bot' && text) { finishTyping(); TW.m=m; TW.lines=null; } } if (S.chat.length>400) S.chat=S.chat.slice(-400); save(); renderChat(); return m; }
 let busy=false;
 async function handle(text){
   text=text.trim(); if(!text||busy) return;
@@ -1067,7 +1081,7 @@ function renderChat(){
   for (let i=start;i<S.chat.length;i++){ const m=S.chat[i];
     const dd=ymd(m.t); if (dd!==lastDay){ html+=`<div class="day-sep">${dayTitle(dd)}</div>`; lastDay=dd; }
     const typing = TW.m===m;
-    let inner = typing ? `<span class="tw-text">${esc(TW.cs.slice(0,TW.n).join(''))}</span>` : esc(m.text);
+    let inner = typing ? (TW.lines ? `<span class="tw-text">${twLinesHTML()}</span>` : `<span class="tw-text tw-measure">${esc(m.text)}</span>`) : esc(m.text);
     if (m.kind==='report' && S.reports[m.week]) inner = reportHTML(S.reports[m.week]) + inner;
     if (m.recs && !typing) inner += `<div class="rec">` + m.recs.map(x=>`<div class="rec-item"><div class="rec-row"><span class="rn"><span class="tag">${x.k}</span>${esc(x.name)} <em>${esc(x.amount||'')}</em></span><span class="rk num">${N(x.kcal)} kcal</span></div>${x.k==='섭취'?`<div class="rec-m num">탄 ${N(x.carb,1)} · 단 ${N(x.protein,1)} · 지 ${N(x.fat,1)} g</div>`:''}</div>`).join('') + `</div>`;
     if (m.retry && i===S.chat.length-1) inner += `<button class="retry" data-retry="${i}">다시 보내기</button>`;
@@ -1076,7 +1090,9 @@ function renderChat(){
       : `<div class="msg bot"><div class="bubble${m.kind==='report'?' wide':''}">${inner}</div><span class="time">${hm(m.t)}</span></div>`;
   }
   if (busy) html += `<div class="msg bot" id="typing"><div class="bubble typing"><span></span><span></span><span></span></div></div>`;
+  const keep = box.scrollTop;
   box.innerHTML=html; box.scrollTop=box.scrollHeight;
+  if (TW.m) { if (!TW.lines) twLayout(); else box.scrollTop = keep; }   // 줄 표출 중 다시 그려도 보던 위치 유지
 }
 function showTyping(){ renderChat(); }
 function render(){ renderSummary(); renderBadge(); renderChat(); save(); }
