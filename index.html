@@ -240,7 +240,7 @@ table.hist th:first-child,table.hist td:first-child{text-align:left}
 'use strict';
 /* ============ 저장소 ============ */
 const LS = 'dietnote.v1';
-const APP_VERSION = 'v2.1';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
+const APP_VERSION = 'v1.2.1';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
 const DEFAULT_MODEL = 'gemini-flash-latest';
 const KCAL_PER_KG = 7700;
 const NEW_DAY_HOUR = 4;               // 이 시각 이전은 전날로 취급
@@ -982,6 +982,24 @@ function sweep(f0,f1,dur,vol){ const c=audio(), t=c.currentTime, o=c.createOscil
   o.type='square'; o.frequency.setValueAtTime(f0,t); o.frequency.exponentialRampToValueAtTime(f1,t+dur);
   g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+0.008); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
   o.connect(g).connect(c.destination); o.start(t); o.stop(t+dur+0.02); }
+/* 버튼 '삑' (고쉐와 같은 소리·크기)과 대화 ↔ 기록 화면 전환 '퉁' (나무토막 튕기는 낮은 소리) */
+const SFX_MASTER = 0.05;                       // 고쉐 전체 음량과 같게
+// 읽어 둔 소리는 앱을 나갔다 와서 오디오를 새로 만들어도 그대로 다시 씀
+const SMP = { tung:'sfx/tung.wav' }, BUF = {};
+function loadSamples(c){ for (const k in SMP) if (!BUF[k]) { BUF[k]='loading';
+    fetch(SMP[k]).then(r=>r.arrayBuffer()).then(b=>new Promise((ok,ng)=>c.decodeAudioData(b,ok,ng))).then(d=>{ BUF[k]=d; }).catch(()=>{ delete BUF[k]; }); } }
+function bus(c, g){ const n=c.createGain(); n.gain.value=g*SFX_MASTER; n.connect(c.destination); return n; }
+function tone(c, o, f, type, vol, dec){ const t=c.currentTime+0.005, os=c.createOscillator(), g=c.createGain(); os.type=type; os.frequency.value=f;
+  g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+0.004); g.gain.exponentialRampToValueAtTime(0.0001,t+dec); os.connect(g).connect(o); os.start(t); os.stop(t+dec+0.05); }
+async function tok(){ const c=await audioReady(); const o=bus(c,.38); tone(c,o,2093,'triangle',.7,.16); tone(c,o,4186,'sine',.15,.08); loadSamples(c); }
+async function tung(){ const c=await audioReady(); loadSamples(c); const b=BUF.tung;
+  if (!b || b==='loading') return;            // 처음 한 번은 읽는 중이면 조용히 넘어감
+  const s=c.createBufferSource(); s.buffer=b; s.connect(bus(c,.45)); s.start(c.currentTime+0.005); }   // 낮은 소리는 폰 스피커에서 작게 들려 삑보다 조금 크게
+// 버튼을 누르면 삑 (남녀 아이콘은 자기 소리가 있어서 제외, 채팅 입력칸은 버튼이 아니라 소리 없음, 보내기 화살표는 삑)
+document.addEventListener('click', e=>{ const b=e.target.closest('button'); if (!b || b.id==='badge' || b.disabled) return; tok().catch(()=>{}); }, true);
+// 앱을 켜고 첫 터치 때 효과음 파일을 미리 읽어 둠
+document.addEventListener('touchstart', ()=>{ try { loadSamples(audio()); } catch(_){} }, {once:true, passive:true});
+
 async function badgeSound(){ await audioReady(); const d=S.cur&&S.days[S.cur]; const s=d?summarize(d):null;
   if (s && s.tk && s.intake > s.tk*0.8) sweep(1000,220,0.18,0.11);   // 뿅↓
   else sweep(500,1800,0.14,0.10); }                                   // 뾰잉
@@ -1106,6 +1124,7 @@ function closePanel(){ panelX(innerWidth, true); panelOpen=false;
     if (!active || lock!=='h') { active=false; return; } active=false;
     const dx=e.changedTouches[0].clientX-sx, v=Math.abs(dx)/Math.max(1, Date.now()-st);
     const far = Math.abs(dx) > innerWidth*0.3 || v > 0.5;
+    if (far) tung().catch(()=>{});                                          // 대화 ↔ 기록 화면 전환 소리
     if (panelOpen) { far ? closePanel() : panelX(0, true); }
     else { far ? openPanel() : closePanel(); }
   });
@@ -1113,7 +1132,7 @@ function closePanel(){ panelX(innerWidth, true); panelOpen=false;
 })();
 // 컴퓨터에서 테스트할 때: ←/→ 키
 document.addEventListener('keydown', e=>{ if (e.target.closest && e.target.closest('input,textarea,select')) return;
-  if (e.key==='ArrowLeft' && !panelOpen) openPanel(); if (e.key==='ArrowRight' && panelOpen) closePanel(); });
+  if (e.key==='ArrowLeft' && !panelOpen) { tung().catch(()=>{}); openPanel(); } if (e.key==='ArrowRight' && panelOpen) { tung().catch(()=>{}); closePanel(); } });
 
 /* ============ 설정 시트 ============ */
 function fillSettings(){
