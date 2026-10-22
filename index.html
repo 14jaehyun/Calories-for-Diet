@@ -240,7 +240,7 @@ table.hist th:first-child,table.hist td:first-child{text-align:left}
 'use strict';
 /* ============ 저장소 ============ */
 const LS = 'dietnote.v1';
-const APP_VERSION = 'v1.2.1';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
+const APP_VERSION = 'v1.2.2';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
 const DEFAULT_MODEL = 'gemini-flash-latest';
 const KCAL_PER_KG = 7700;
 const NEW_DAY_HOUR = 4;               // 이 시각 이전은 전날로 취급
@@ -994,15 +994,15 @@ function tone(c, o, f, type, vol, dec){ const t=c.currentTime+0.005, os=c.create
 async function tok(){ const c=await audioReady(); const o=bus(c,.38); tone(c,o,2093,'triangle',.7,.16); tone(c,o,4186,'sine',.15,.08); loadSamples(c); }
 async function tung(){ const c=await audioReady(); loadSamples(c); const b=BUF.tung;
   if (!b || b==='loading') return;            // 처음 한 번은 읽는 중이면 조용히 넘어감
-  const s=c.createBufferSource(); s.buffer=b; s.connect(bus(c,.45)); s.start(c.currentTime+0.005); }   // 낮은 소리는 폰 스피커에서 작게 들려 삑보다 조금 크게
+  const s=c.createBufferSource(); s.buffer=b; s.connect(bus(c,.675)); s.start(c.currentTime+0.005); }   // 낮은 소리는 폰 스피커에서 작게 들려 삑보다 조금 크게
 // 버튼을 누르면 삑 (남녀 아이콘은 자기 소리가 있어서 제외, 채팅 입력칸은 버튼이 아니라 소리 없음, 보내기 화살표는 삑)
 document.addEventListener('click', e=>{ const b=e.target.closest('button'); if (!b || b.id==='badge' || b.disabled) return; tok().catch(()=>{}); }, true);
 // 앱을 켜고 첫 터치 때 효과음 파일을 미리 읽어 둠
 document.addEventListener('touchstart', ()=>{ try { loadSamples(audio()); } catch(_){} }, {once:true, passive:true});
 
 async function badgeSound(){ await audioReady(); const d=S.cur&&S.days[S.cur]; const s=d?summarize(d):null;
-  if (s && s.tk && s.intake > s.tk*0.8) sweep(1000,220,0.18,0.11);   // 뿅↓
-  else sweep(500,1800,0.14,0.10); }                                   // 뾰잉
+  if (s && s.tk && s.intake > s.tk*0.8) sweep(1000,220,0.18,0.055);  // 뿅↓ (v1.2.2에서 음량 50%로)
+  else sweep(500,1800,0.14,0.05); }                                   // 뾰잉
 function renderBadge(){ const b=$('#badge'), sx=S.profile.sex;
   if (sx!=='male' && sx!=='female') { b.classList.remove('on'); return; }
   const src = sx==='female' ? 'badge-female.png' : 'badge-male.png';
