@@ -250,7 +250,7 @@ table.hist th:first-child,table.hist td:first-child{text-align:left}
 /* ============ 저장소 ============ */
 const LS = 'dietnote.v1';
 const APP_NAME = 'bite with me!';
-const APP_VERSION = 'v1.3.3';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
+const APP_VERSION = 'v1.3.4';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
 const DEFAULT_MODEL = 'gemini-flash-latest';
 const KCAL_PER_KG = 7700;
 const NEW_DAY_HOUR = 4;               // 이 시각 이전은 전날로 취급
@@ -580,7 +580,7 @@ function context(){
     ctx.메모일정 = notesForAI();
     const g = goalMode();
     ctx.목표방향 = { 방향: g.mode==='bulk'?'증량(벌크업)':'감량', 목표섭취kcal:g.target, 평소소모kcal:g.burn, 차이kcal:g.target-g.burn };
-    if (ids.length) ctx.최근 = ids.map(i=>{ const x=S.days[i], s=summarize(x); return `${i} 섭취${s.intake} 소모${s.burn} 잉여${s.surplus} 체중${x.weightAM||'-'}`; });
+    if (ids.length) ctx.최근 = ids.map(i=>{ const x=S.days[i], s=summarize(x); return `${i} 섭취${s.intake} 단백질${s.protein}g 소모${s.burn} 잉여${s.surplus} 체중${x.weightAM||'-'} 체지방률${x.bodyFat||'-'}`; });
   }
   return ctx;
 }
@@ -594,6 +594,7 @@ function systemPrompt(){
 [목표 방향 — 감량일 수도, 벌크업일 수도 있다]
 - 이 앱은 감량과 증량(벌크업) 모두에 쓰인다. 방향은 사용자가 설정한 목표 섭취칼로리로 판단한다: 목표 섭취가 평소 소모보다 낮으면 감량, 높으면 증량이다. 현황 데이터의 목표방향을 따른다. 차이가 100kcal 안팎으로 작으면 유지에 가깝다고 보고 조언한다.
 - 조언은 항상 설정된 목표 섭취칼로리와 목표 단백질을 채우거나 지키는 방향으로 한다. 감량 중에는 목표를 넘지 않도록, 증량 중에는 목표를 충분히 채우도록 돕는다. 결핍이 좋다거나 잉여가 나쁘다고 일반화하지 않는다.
+- 목표 칼로리·목표 단백질 달성은 유지하되, 근손실, 건강, 컨디션, 영양 관점도 함께 고려해 조언한다. 최근 기록의 체중·체지방률·단백질 흐름도 참고한다.
 
 [기록 규칙 — 가장 중요]
 - "먹었다/먹었어/먹음/마셨다/했다/했어/하고 왔어/다녀왔다/기록해/추가해/넣어줘"처럼 이미 수행했거나 기록을 명시적으로 요청한 것만 기록한다.
@@ -1058,7 +1059,7 @@ function tone(c, o, f, type, vol, dec){ const t=c.currentTime+0.005, os=c.create
 async function tok(){ const c=await audioReady(); const o=bus(c,.38); tone(c,o,2093,'triangle',.7,.16); tone(c,o,4186,'sine',.15,.08); loadSamples(c); }
 async function tung(){ const c=await audioReady(); loadSamples(c); const b=BUF.tung;
   if (!b || b==='loading') return;            // 처음 한 번은 읽는 중이면 조용히 넘어감
-  const s=c.createBufferSource(); s.buffer=b; s.connect(bus(c,2.25)); s.start(c.currentTime+0.005); }   // 낮은 소리는 폰 스피커에서 작게 들려 삑보다 조금 크게
+  const s=c.createBufferSource(); s.buffer=b; s.connect(bus(c,1.6875)); s.start(c.currentTime+0.005); }   // 낮은 소리는 폰 스피커에서 작게 들려 삑보다 조금 크게
 // 버튼을 누르면 삑 (남녀 아이콘은 자기 소리가 있어서 제외, 채팅 입력칸·보내기 화살표는 소리 없음)
 document.addEventListener('click', e=>{ const b=e.target.closest('button'); if (!b || b.id==='badge' || b.id==='send' || b.disabled) return; tok().catch(()=>{}); }, true);
 // 앱을 켜고 첫 터치 때 효과음 파일을 미리 읽어 둠
