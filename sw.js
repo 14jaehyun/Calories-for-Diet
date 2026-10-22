@@ -1,6 +1,6 @@
 // 버전 기록: dietnote-v10 이후로 버전 번호를 다시 시작(리부트)함. v2.1 다음 업데이트부터 v1.2.1 체계로 정함.
 // 캐시 이름은 설정창 하단에 표시되는 버전(index.html의 APP_VERSION)과 같게 맞춘다.
-const V = 'dietnote-v1.2.4';
+const V = 'dietnote-v1.2.5';
 const SHELL = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png', './badge-male.png', './badge-female.png', './sfx/tung.wav'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(V).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));

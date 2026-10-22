@@ -242,7 +242,7 @@ table.hist th:first-child,table.hist td:first-child{text-align:left}
 'use strict';
 /* ============ 저장소 ============ */
 const LS = 'dietnote.v1';
-const APP_VERSION = 'v1.2.4';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
+const APP_VERSION = 'v1.2.5';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
 const DEFAULT_MODEL = 'gemini-flash-latest';
 const KCAL_PER_KG = 7700;
 const NEW_DAY_HOUR = 4;               // 이 시각 이전은 전날로 취급
@@ -780,7 +780,7 @@ function applyActions(actions){
 
 /* ============ 채팅 ============ */
 /* AI 답변을 한 번에 띄우지 않고 AI 앱처럼 덩어리로 나눠 빠르게 페이드인
-   덩어리: 띄어쓰기 기준, 공백 뺀 8자 이상 모이면 한 덩어리 (말풍선 한 줄이 2~3덩어리), 줄바꿈에서는 무조건 끊음
+   덩어리: 띄어쓰기 기준, 공백 뺀 11자 이상 모이면 한 덩어리 (말풍선 한 줄이 2~3덩어리), 줄바꿈에서는 무조건 끊음
    속도: 덩어리 간격 0.11초, 페이드 0.3초 (시안 '느림') */
 const TW = { m:null, cs:[], n:0, timer:null, end:null, next:false };
 const TW_GAP = 110, TW_FADE = 300;
@@ -788,7 +788,7 @@ function twChunks(t){ const out=[]; let cur='';
   for (const tok of String(t).split(/(\s+)/)) {
     if (tok.includes('\n')) { if (cur) out.push(cur); out.push(tok); cur=''; continue; }
     cur += tok;
-    if (cur.replace(/\s/g,'').length >= 8 && !/\s$/.test(cur)) { out.push(cur); cur=''; }
+    if (cur.replace(/\s/g,'').length >= 11 && !/\s$/.test(cur)) { out.push(cur); cur=''; }
   }
   if (cur) out.push(cur); return out; }
 function typeNextMsg(){ TW.next=true; }                 // 바로 다음 addMsg를 덩어리 표출로
