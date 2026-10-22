@@ -1,6 +1,6 @@
 {
-  "name": "bite with me",
-  "short_name": "bite with me",
+  "name": "bite with me!",
+  "short_name": "bite with me!",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

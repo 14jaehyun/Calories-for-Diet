@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>bite with me</title>
+<title>bite with me!</title>
 <meta name="theme-color" content="#ffffff">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="color-scheme" content="light">
-<meta name="apple-mobile-web-app-title" content="bite with me">
+<meta name="apple-mobile-web-app-title" content="bite with me!">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="icon-192.png">
@@ -68,6 +68,7 @@ header h1 small{display:block;font-size:12px;font-weight:450;color:var(--sub);ma
 .bot .bubble{background:var(--soft);border-bottom-left-radius:5px}
 /* 답변 줄 단위 페이드인: 한 줄씩 차례로, 두세 줄이 겹쳐서 부드럽게 */
 .tw-measure{visibility:hidden}
+.tw-clip{display:block;overflow:hidden;position:relative}   /* 말풍선 세로 늘어남 (가로는 고정) */
 .ln{display:block;opacity:0;animation:fadeIn .52s ease-out forwards}
 .ln.blank{opacity:1;animation:none}
 .time{font-size:10.5px;color:var(--faint);align-self:flex-end;margin:0 5px 2px}
@@ -169,7 +170,7 @@ table.hist th:first-child,table.hist td:first-child{text-align:left}
 <body>
 <header>
   <div class="brand">
-    <h1><span id="appName">bite with me</span><small id="dayLabel">&nbsp;</small></h1>
+    <h1><span id="appName">bite with me!</span><small id="dayLabel">&nbsp;</small></h1>
     <button id="badge" type="button" aria-label="뿅" ontouchstart=""><img alt="" src="badge-male.png"></button>
   </div>
 </header>
@@ -245,7 +246,8 @@ table.hist th:first-child,table.hist td:first-child{text-align:left}
 'use strict';
 /* ============ 저장소 ============ */
 const LS = 'dietnote.v1';
-const APP_VERSION = 'v1.2.7';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
+const APP_NAME = 'bite with me!';
+const APP_VERSION = 'v1.2.8';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
 const DEFAULT_MODEL = 'gemini-flash-latest';
 const KCAL_PER_KG = 7700;
 const NEW_DAY_HOUR = 4;               // 이 시각 이전은 전날로 취급
@@ -580,7 +582,7 @@ function context(){
   return ctx;
 }
 function systemPrompt(){
-  return `너는 1인용 식단관리 앱 "${S.settings.appName||'bite with me'}" 안에 있는 트레이너다. 정중하고 활기차며, 공감 능력과 분석 능력이 모두 뛰어나다. 정확한 정보를 전달한다. 사용자의 채팅 메시지를 읽고 지정된 JSON으로만 응답한다.
+  return `너는 1인용 식단관리 앱 "${APP_NAME}" 안에 있는 트레이너다. 정중하고 활기차며, 공감 능력과 분석 능력이 모두 뛰어나다. 정확한 정보를 전달한다. 사용자의 채팅 메시지를 읽고 지정된 JSON으로만 응답한다.
 
 [상황 판단]
 - 사용자의 입력이 식단·운동 기록, 체중·걸음 같은 수치, 피드백이나 코칭 요청일 때는 [코치 모드]로 정확하고 엄격하게 답한다. 계산은 현황 데이터로 칼같이 한다.
@@ -786,10 +788,16 @@ function applyActions(actions){
    - 말풍선에서 실제로 줄이 바뀌는 위치 그대로 한 줄씩 나눔
    - 다음 줄은 0.17초 뒤 시작, 한 줄 페이드 0.52초 → 늘 세 줄 정도가 겹쳐 차오름
    - 빈 줄(문단 사이)은 순서에 넣지 않아 멈칫하지 않음 */
-const TW = { m:null, lines:null, start:0, end:null, follow:null, next:false };
+const TW = { m:null, lines:null, start:0, end:null, follow:null, next:false, w:0, bottoms:null, textIdx:null };
+const TW_AHEAD = 2;   // 말풍선은 지금 나타나는 줄보다 두 줄 앞서 늘어남 (전환 효과 없이)
 const TW_GAP = 170, TW_FADE = 520;
 function typeNextMsg(){ TW.next=true; }                 // 바로 다음 addMsg를 줄 단위 표출로
-function finishTyping(){ if (!TW.m) return; clearTimeout(TW.end); clearInterval(TW.follow); TW.m=null; TW.lines=null; renderChat(); }
+function finishTyping(){ if (!TW.m) return; clearTimeout(TW.end); clearInterval(TW.follow); TW.m=null; TW.lines=null; TW.bottoms=null; renderChat(); }
+// 지금 높이: 나타나고 있는 글자 줄의 두 줄 아래까지
+function twHeight(){ if (!TW.bottoms) return null;
+  const k=Math.max(0, Math.min(TW.textIdx.length-1, Math.floor((Date.now()-TW.start)/TW_GAP)));
+  return TW.bottoms[Math.min(TW.bottoms.length-1, TW.textIdx[k]+TW_AHEAD)]; }
+function twGrow(el){ const h=twHeight(); if (h!=null && el) el.style.height=h+'px'; }
 // 줄마다 시작 시각: 빈 줄은 건너뛰고 글자 있는 줄만 차례로. 다시 그려도 이어서 진행되게 지난 시간만큼 당김
 function twLinesHTML(){ const el=Date.now()-TW.start; let k=0;
   return TW.lines.map(l=> l.trim()==='' ? `<span class="ln blank">\u00a0</span>`
@@ -797,26 +805,29 @@ function twLinesHTML(){ const el=Date.now()-TW.start; let k=0;
 // 화면에 보이지 않게 글을 깔고 글자마다 위치를 재서 같은 높이끼리 한 줄로 묶음
 function twLayout(){
   const el=document.querySelector('#chat .tw-text'); if (!el) return;
+  const bub=el.closest('.bubble'); TW.w=bub.offsetWidth; bub.style.width=TW.w+'px';   // 가로 폭: 다 쓴 상태의 폭으로 고정
   el.innerHTML=''; const spans=[...TW.m.text].map(ch=>{ const s=document.createElement('span'); s.textContent=ch; el.appendChild(s); return s; });
   const lines=[]; let top=null, cur='';
   spans.forEach(sp=>{ const t=sp.offsetTop; if (top!==null && t>top+2) { lines.push(cur); cur=''; } top=t; cur+=sp.textContent; });
   lines.push(cur);
   TW.lines = lines.map(l=>l.replace(/\n/g,''));
-  TW.start = Date.now(); el.classList.remove('tw-measure'); el.innerHTML = twLinesHTML();
-  const n = TW.lines.filter(l=>l.trim()!=='').length;
-  TW.end = setTimeout(finishTyping, Math.max(0,n-1)*TW_GAP + TW_FADE + 50);
-  // 화면 따라가기: 답변 첫 줄이 보이게 두고, 새 줄이 나타나는 만큼 아래로 (위로 올려 읽는 중이면 따라가지 않음)
-  const box=$('#chat'), bub=el.closest('.bubble');
-  box.scrollTop = Math.min(box.scrollHeight - box.clientHeight, bub.offsetTop - 8);
-  let last = box.scrollTop;
+  TW.textIdx = TW.lines.map((l,i)=>l.trim()===''?-1:i).filter(i=>i>=0);
+  TW.start = Date.now(); el.classList.remove('tw-measure'); el.classList.add('tw-clip'); el.innerHTML = twLinesHTML();
+  TW.bottoms = [...el.children].map(c=>c.offsetTop+c.offsetHeight);   // 줄마다 아래 끝 위치 (말풍선 높이 계산용)
+  twGrow(el);
+  TW.end = setTimeout(finishTyping, Math.max(0,TW.textIdx.length-1)*TW_GAP + TW_FADE + 50);
+  // 화면 따라가기: 답변 첫 줄이 보이게 두고, 말풍선이 늘어나는 만큼 아래로 (위로 올려 읽는 중이면 따라가지 않음)
+  const box=$('#chat'); const rel = r => r.top - box.getBoundingClientRect().top + box.scrollTop;
+  box.scrollTop = Math.min(box.scrollHeight - box.clientHeight, rel(bub.getBoundingClientRect()) - 8);
+  let last = box.scrollTop, following = true;
   clearInterval(TW.follow);
   TW.follow = setInterval(()=>{ if (!TW.m) { clearInterval(TW.follow); return; }
-    if (Math.abs(box.scrollTop - last) > 4) { clearInterval(TW.follow); return; }   // 사용자가 직접 스크롤함
-    const txt = [...el.querySelectorAll('.ln:not(.blank)')];               // 지금 나타나고 있는 줄
-    const ln = txt[Math.min(txt.length-1, Math.floor((Date.now()-TW.start)/TW_GAP))]; if (!ln) return;
-    const want = Math.min(box.scrollHeight - box.clientHeight, ln.offsetTop + ln.offsetHeight - box.clientHeight + 24);
-    if (want > box.scrollTop) { box.scrollTop = want; } last = box.scrollTop;
-  }, 60);
+    const e=document.querySelector('#chat .tw-text'); twGrow(e);
+    if (!following) return;
+    if (Math.abs(box.scrollTop - last) > 4) { following=false; return; }          // 사용자가 직접 스크롤함
+    const want = Math.min(box.scrollHeight - box.clientHeight, rel(e.closest('.msg').getBoundingClientRect()) + e.closest('.msg').offsetHeight - box.clientHeight + 8);
+    if (want > box.scrollTop) box.scrollTop = want; last = box.scrollTop;
+  }, 30);
 }
 document.addEventListener('visibilitychange', ()=>{ if (document.hidden) finishTyping(); });
 function addMsg(role, text, extra={}){ const m={role, text, t:Date.now(), ...extra}; S.chat.push(m);
@@ -959,7 +970,7 @@ function reportHTML(rep){
 function reportLine(rep){ const D=rep.data;
   return `[주간 리포트 ${md(D.ws)}~${md(D.we)}] 기록 ${D.n}일 · 평균 ${D.avg==null?'-':sgn(D.avg)}kcal · 누적 ${D.sum==null?'-':sgn(D.sum)}kcal · 체중 ${D.wchg==null?'-':sgn(D.wchg,1)}kg`; }
 function reportPrompt(){
-  return `너는 식단관리 앱 "${S.settings.appName||'bite with me'}"의 트레이너다. 정중하고 활기차며, 공감 능력과 분석 능력이 모두 뛰어나다. 정확한 정보를 전달한다. 지난 한 주 기록을 보고 주간 리포트 아래에 붙을 조언을 쓴다.
+  return `너는 식단관리 앱 "${APP_NAME}"의 트레이너다. 정중하고 활기차며, 공감 능력과 분석 능력이 모두 뛰어나다. 정확한 정보를 전달한다. 지난 한 주 기록을 보고 주간 리포트 아래에 붙을 조언을 쓴다.
 - 말투: 극존대(하십시오체)를 쓰지 않는 편안한 존댓말(해요체). 인사·서론 없이 바로 본론, 마무리는 현실적인 한마디. 영혼 없는 칭찬, 격식체, 거창한 비유는 금지. 느낌표는 기계적으로 붙이지 말고 정말 필요할 때만, 이모지는 쓰지 않는다.
   예) "80kg으로 돌아온 건 다시 1,900kcal, 단백질 150g으로 궤도를 잡으면 수분이 빠지면서 금방 내려가요. 너무 조바심 내지 마시고, 다음 주는 저녁 운동부터 힘차게 해 봐요."
 - 분량 제한 없음. 한 주를 함께 돌아보며 하고 싶은 말을 충분히 풀어서 쓴다. 순수 텍스트만(마크다운·목록 기호 없이).
@@ -1081,13 +1092,13 @@ function renderChat(){
   for (let i=start;i<S.chat.length;i++){ const m=S.chat[i];
     const dd=ymd(m.t); if (dd!==lastDay){ html+=`<div class="day-sep">${dayTitle(dd)}</div>`; lastDay=dd; }
     const typing = TW.m===m;
-    let inner = typing ? (TW.lines ? `<span class="tw-text">${twLinesHTML()}</span>` : `<span class="tw-text tw-measure">${esc(m.text)}</span>`) : esc(m.text);
+    let inner = typing ? (TW.lines ? `<span class="tw-text tw-clip" style="height:${twHeight()}px">${twLinesHTML()}</span>` : `<span class="tw-text tw-measure">${esc(m.text)}</span>`) : esc(m.text);
     if (m.kind==='report' && S.reports[m.week]) inner = reportHTML(S.reports[m.week]) + inner;
     if (m.recs && !typing) inner += `<div class="rec">` + m.recs.map(x=>`<div class="rec-item"><div class="rec-row"><span class="rn"><span class="tag">${x.k}</span>${esc(x.name)} <em>${esc(x.amount||'')}</em></span><span class="rk num">${N(x.kcal)} kcal</span></div>${x.k==='섭취'?`<div class="rec-m num">탄 ${N(x.carb,1)} · 단 ${N(x.protein,1)} · 지 ${N(x.fat,1)} g</div>`:''}</div>`).join('') + `</div>`;
     if (m.retry && i===S.chat.length-1) inner += `<button class="retry" data-retry="${i}">다시 보내기</button>`;
     html += m.role==='user'
       ? `<div class="msg user"><span class="time">${hm(m.t)}</span><div class="bubble">${inner}</div></div>`
-      : `<div class="msg bot"><div class="bubble${m.kind==='report'?' wide':''}">${inner}</div><span class="time">${hm(m.t)}</span></div>`;
+      : `<div class="msg bot"><div class="bubble${m.kind==='report'?' wide':''}"${typing&&TW.lines&&TW.w?` style="width:${TW.w}px"`:''}>${inner}</div><span class="time">${hm(m.t)}</span></div>`;
   }
   if (busy) html += `<div class="msg bot" id="typing"><div class="bubble typing"><span></span><span></span><span></span></div></div>`;
   const keep = box.scrollTop;
@@ -1207,7 +1218,7 @@ $('#saveProfile').addEventListener('click', ()=>{
   if (!was && profileReady()) { const d=ensureDay(); addMsg('bot', `설정 완료! 추정 기초대사량 ${N(d.bmr)} kcal. 이제 먹은 음식과 운동을 적어주세요.`); }
   render(); toast(ch.length?'저장했어요':'변경 사항이 없어요'); closeSheets();
 });
-function applyAppName(){ const n=S.settings.appName||'bite with me'; $('#appName').textContent=n; document.title=n; }
+function applyAppName(){ $('#appName').textContent=APP_NAME; document.title=APP_NAME; }   // 이름 설정은 없앴으므로 항상 고정 이름
 // 설정 칸을 누르면 기존 값 전체 선택 → 바로 입력하면 덮어쓰기
 document.querySelectorAll('input.sel').forEach(el=>{
   const selAll=()=>{ try{ el.setSelectionRange(0, el.value.length); }catch(_){ el.select(); } };
