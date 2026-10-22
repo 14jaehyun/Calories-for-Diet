@@ -249,7 +249,7 @@ table.hist th:first-child,table.hist td:first-child{text-align:left}
 /* ============ 저장소 ============ */
 const LS = 'dietnote.v1';
 const APP_NAME = 'bite with me!';
-const APP_VERSION = 'v1.3.1';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
+const APP_VERSION = 'v1.3.2';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
 const DEFAULT_MODEL = 'gemini-flash-latest';
 const KCAL_PER_KG = 7700;
 const NEW_DAY_HOUR = 4;               // 이 시각 이전은 전날로 취급
@@ -1106,7 +1106,7 @@ function renderChat(){
     if (m.retry && i===S.chat.length-1) inner += `<button class="retry" data-retry="${i}">다시 보내기</button>`;
     html += m.role==='user'
       ? `<div class="msg user"><span class="time">${hm(m.t)}</span><div class="bubble">${inner}</div></div>`
-      : `<div class="msg bot"><div class="bubble${m.kind==='report'?' wide':''}"${typing&&TW.lines&&TW.w?` style="width:${TW.w}px"`:''}>${inner}</div><span class="time">${hm(m.t)}</span></div>`;
+      : `<div class="msg bot"><div class="bubble${m.kind==='report'?' wide':''}"${typing&&TW.lines&&TW.w?` style="width:${TW.w}px"`:''}>${inner}</div>${typing?'':`<span class="time">${hm(m.t)}</span>`}</div>`;   // 답변 시간은 표출이 끝난 뒤에
   }
   if (busy) html += `<div class="msg bot" id="typing"><div class="bubble typing"><span></span><span></span><span></span></div></div>`;
   if (lu>=0) html += `</div>`;
@@ -1131,16 +1131,22 @@ const SCR = { sendPending:false, anim:false, keepOnce:false, raf:0, spacer:false
 function fitChat(){ const box=$('#chat'), h=Math.max(0, box.clientHeight-20);
   const inn=box.querySelector('.chat-in'); if (inn) inn.style.minHeight=h+'px';
   const turn=box.querySelector('.turn.last'); if (turn) turn.style.minHeight = SCR.spacer ? h+'px' : ''; }
-// 입력칸을 누르면(키보드가 올라옴): 질문 묶음의 빈 공간을 없애서 대화를 아래로 내려 대화 끝이 키보드 바로 위에 오게.
-// 이전 대화 중간을 보던 중이면 그 자리 그대로
-$('#input').addEventListener('focus', ()=>{ if (!SCR.spacer || busy || TW.m) return;
-  const box=$('#chat'), turn=box.querySelector('.turn.last');
-  const looking = turn && turn.getBoundingClientRect().top < box.getBoundingClientRect().bottom - 10;   // 마지막 질문이 화면에 보이는 중
-  SCR.spacer=false; fitChat();
-  if (looking) { const toEnd=()=>{ box.scrollTop=box.scrollHeight; }; toEnd(); setTimeout(toEnd,120); setTimeout(toEnd,350); }   // 키보드 올라오는 동안에도 맞춤
+// 입력칸을 누르면(키보드가 올라옴): 어디를 보고 있었든 직전 대화 끝이 키보드 바로 위에 오게.
+// 질문 묶음의 빈 공간도 없앰. 답변이 나오는 중이면 위치는 그대로 둠
+let inputFocused=false;
+const toEnd = () => { const b=$('#chat'); b.scrollTop=b.scrollHeight; };
+$('#input').addEventListener('focus', ()=>{ inputFocused=true; if (busy || TW.m) return;
+  SCR.spacer=false; fitViewport(); fitChat(); toEnd();
+  [100,250,400,650].forEach(t=>setTimeout(()=>{ if (inputFocused && !busy && !TW.m) { fitViewport(); fitChat(); toEnd(); } }, t));   // 키보드가 올라오는 동안 계속 맞춤
 });
+$('#input').addEventListener('blur', ()=>{ inputFocused=false; setTimeout(()=>{ if (!inputFocused) { fitViewport(); fitChat(); } }, 50); });
+// 아이폰은 키보드가 올라와도 앱 화면 높이가 줄지 않고 키보드가 아래를 덮음 → 키보드 위 보이는 영역 높이에 앱 화면을 맞춤
+function fitViewport(){ const vv=window.visualViewport; if (!vv) return;
+  if (inputFocused && vv.height < window.innerHeight - 50) { document.body.style.height=vv.height+'px'; window.scrollTo(0,0); }
+  else document.body.style.height=''; }
 // 화면 높이가 바뀌면(키보드, 회전) 높이 다시 맞춤
-(window.visualViewport||window).addEventListener('resize', ()=>{ const box=$('#chat'), end=atEnd(); fitChat(); if (end && !SCR.anim) box.scrollTop=box.scrollHeight; });
+(window.visualViewport||window).addEventListener('resize', ()=>{ const end=atEnd(); fitViewport(); fitChat();
+  if ((inputFocused && !busy && !TW.m) || (end && !SCR.anim)) toEnd(); });
 function smoothScroll(y, ms){ const box=$('#chat'); cancelAnimationFrame(SCR.raf);
   y=Math.max(0, Math.min(y, box.scrollHeight-box.clientHeight));
   const y0=box.scrollTop, d=y-y0, t0=performance.now(); SCR.anim=true;
