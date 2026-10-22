@@ -68,7 +68,7 @@ header h1 small{display:block;font-size:12px;font-weight:450;color:var(--sub);ma
 .bot .bubble{background:var(--soft);border-bottom-left-radius:5px}
 /* 답변 줄 단위 페이드인: 한 줄씩 차례로, 두세 줄이 겹쳐서 부드럽게 */
 .tw-measure{visibility:hidden}
-.tw-clip{display:block;overflow:hidden;position:relative}   /* 말풍선 세로 늘어남 (가로는 고정) */
+.tw-clip{display:block;overflow:hidden;position:relative;transition:height .17s ease-out}   /* 말풍선 세로로 부드럽게 늘어남 (가로는 고정) */
 .ln{display:block;opacity:0;animation:fadeIn .52s ease-out forwards}
 .ln.blank{opacity:1;animation:none}
 .time{font-size:10.5px;color:var(--faint);align-self:flex-end;margin:0 5px 2px}
@@ -247,7 +247,7 @@ table.hist th:first-child,table.hist td:first-child{text-align:left}
 /* ============ 저장소 ============ */
 const LS = 'dietnote.v1';
 const APP_NAME = 'bite with me!';
-const APP_VERSION = 'v1.2.9';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
+const APP_VERSION = 'v1.3.0';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
 const DEFAULT_MODEL = 'gemini-flash-latest';
 const KCAL_PER_KG = 7700;
 const NEW_DAY_HOUR = 4;               // 이 시각 이전은 전날로 취급
@@ -789,10 +789,13 @@ function applyActions(actions){
    - 다음 줄은 0.17초 뒤 시작, 한 줄 페이드 0.52초 → 늘 세 줄 정도가 겹쳐 차오름
    - 빈 줄(문단 사이)은 순서에 넣지 않아 멈칫하지 않음 */
 const TW = { m:null, lines:null, start:0, end:null, follow:null, next:false, w:0, bottoms:null, textIdx:null };
-const TW_AHEAD = 2;   // 말풍선은 지금 나타나는 줄보다 두 줄 앞서 늘어남 (전환 효과 없이)
+const TW_AHEAD = 2;   // 말풍선은 지금 나타나는 줄보다 두 줄 앞서 0.17초 동안 부드럽게 늘어남
 const TW_GAP = 170, TW_FADE = 520;
 function typeNextMsg(){ TW.next=true; }                 // 바로 다음 addMsg를 줄 단위 표출로
-function finishTyping(){ if (!TW.m) return; clearTimeout(TW.end); clearInterval(TW.follow); TW.m=null; TW.lines=null; TW.bottoms=null; renderChat(); }
+function finishTyping(){ if (!TW.m) return; clearTimeout(TW.end); cancelAnimationFrame(TW.follow); TW.m=null; TW.lines=null; TW.bottoms=null;
+  SCR.keepOnce = !!TW.userScrolled || !atEnd(); renderChat(); }
+// 지금 화면이 맨 아래(또는 거의)인지
+function atEnd(){ const b=$('#chat'); return b.scrollHeight - b.scrollTop - b.clientHeight < 40; }
 // 지금 높이: 나타나고 있는 글자 줄의 두 줄 아래까지
 function twHeight(){ if (!TW.bottoms) return null;
   const k=Math.max(0, Math.min(TW.textIdx.length-1, Math.floor((Date.now()-TW.start)/TW_GAP)));
@@ -816,16 +819,19 @@ function twLayout(){
   TW.bottoms = [...el.children].map(c=>c.offsetTop+c.offsetHeight);   // 줄마다 아래 끝 위치 (말풍선 높이 계산용)
   twGrow(el);
   TW.end = setTimeout(finishTyping, Math.max(0,TW.textIdx.length-1)*TW_GAP + TW_FADE + 50);
-  // 화면 따라가기: 말풍선이 늘어나는 대로 말풍선 끝을 따라 내려감
-  // 사용자가 손가락으로 직접 스크롤하면 그 답변이 끝날 때까지 따라가지 않음 (키보드가 내려가며 화면 높이가 바뀌는 건 무시)
-  const box=$('#chat'); TW.userScrolled=false; box.scrollTop=box.scrollHeight;
-  clearInterval(TW.follow);
-  TW.follow = setInterval(()=>{ if (!TW.m) { clearInterval(TW.follow); return; }
-    twGrow(document.querySelector('#chat .tw-text'));
-    if (!TW.userScrolled) box.scrollTop = box.scrollHeight;
-  }, 30);
+  // 화면 따라가기: 화면이 차기 전엔 가만히, 말풍선 끝이 화면 아래에 닿으면 그때부터 말풍선 끝을 따라 내려감
+  // 사용자가 손가락으로 직접 스크롤하면 그 답변이 끝날 때까지 따라가지 않음
+  const box=$('#chat'); TW.userScrolled=false;
+  cancelAnimationFrame(TW.follow);
+  const loop=()=>{ if (!TW.m) return;
+    const e=document.querySelector('#chat .tw-text'); twGrow(e);
+    if (e && !TW.userScrolled && !SCR.anim) {
+      const over = e.closest('.msg').getBoundingClientRect().bottom - box.getBoundingClientRect().bottom + 12;
+      if (over>0) box.scrollTop += over; }
+    TW.follow=requestAnimationFrame(loop); };
+  TW.follow=requestAnimationFrame(loop);
 }
-['touchmove','wheel'].forEach(ev=>$('#chat').addEventListener(ev, ()=>{ if (TW.m) TW.userScrolled=true; }, {passive:true}));
+['touchmove','wheel'].forEach(ev=>$('#chat').addEventListener(ev, ()=>{ if (TW.m) TW.userScrolled=true; if (SCR.anim) { SCR.anim=false; cancelAnimationFrame(SCR.raf); } }, {passive:true}));
 document.addEventListener('visibilitychange', ()=>{ if (document.hidden) finishTyping(); });
 function addMsg(role, text, extra={}){ const m={role, text, t:Date.now(), ...extra}; S.chat.push(m);
   if (TW.next) { TW.next=false; if (role==='bot' && text) { finishTyping(); TW.m=m; TW.lines=null; } } if (S.chat.length>400) S.chat=S.chat.slice(-400); save(); renderChat(); return m; }
@@ -833,6 +839,7 @@ let busy=false;
 async function handle(text){
   text=text.trim(); if(!text||busy) return;
   finishTyping();                                        // 답변이 아직 나오는 중이면 바로 끝까지 보여주고 진행
+  SCR.sendPending=true;                                   // 이 질문을 화면 맨 위로
   addMsg('user', text);
   // 1) 첫 설정
   if (!profileReady()) {
@@ -1086,7 +1093,9 @@ function renderSummary(){
 function renderChat(){
   const box=$('#chat'); let html='', lastDay='';
   const start=Math.max(0,S.chat.length-150);
+  let lu=-1; for (let i=S.chat.length-1;i>=start;i--) if (S.chat[i].role==='user') { lu=i; break; }   // 마지막 질문
   for (let i=start;i<S.chat.length;i++){ const m=S.chat[i];
+    if (i===lu) html+=`<div class="turn last">`;          // 마지막 질문·답변 묶음: 화면 높이만큼 자리를 잡아 질문을 맨 위로 올릴 수 있게
     const dd=ymd(m.t); if (dd!==lastDay){ html+=`<div class="day-sep">${dayTitle(dd)}</div>`; lastDay=dd; }
     const typing = TW.m===m;
     let inner = typing ? (TW.lines ? `<span class="tw-text tw-clip" style="height:${twHeight()}px">${twLinesHTML()}</span>` : `<span class="tw-text tw-measure">${esc(m.text)}</span>`) : esc(m.text);
@@ -1098,10 +1107,29 @@ function renderChat(){
       : `<div class="msg bot"><div class="bubble${m.kind==='report'?' wide':''}"${typing&&TW.lines&&TW.w?` style="width:${TW.w}px"`:''}>${inner}</div><span class="time">${hm(m.t)}</span></div>`;
   }
   if (busy) html += `<div class="msg bot" id="typing"><div class="bubble typing"><span></span><span></span><span></span></div></div>`;
+  if (lu>=0) html += `</div>`;
   const keep = box.scrollTop;
-  box.innerHTML=html; box.scrollTop=box.scrollHeight;
-  if (TW.m) { if (!TW.lines) twLayout(); else box.scrollTop = TW.userScrolled ? keep : box.scrollHeight; }   // 줄 표출 중 다시 그려도 따라가기 유지
+  box.innerHTML=html;
+  const turn=box.querySelector('.turn.last'); if (turn) turn.style.minHeight = Math.max(0, box.clientHeight - 20) + 'px';
+  if (SCR.sendPending) {                                  // 방금 질문을 보냄 → 그 질문을 0.3초 부드러운 스크롤로 맨 위에
+    SCR.sendPending=false; box.scrollTop=keep;
+    if (turn) smoothScroll(box.scrollTop + turn.getBoundingClientRect().top - box.getBoundingClientRect().top - 2, SCROLL_MS);
+    return; }
+  if (SCR.anim || TW.m) { box.scrollTop=keep;            // 질문이 올라가는 중이거나 답변 표출 중: 보던 위치 유지
+    if (TW.m && !TW.lines) twLayout();                    // 답변 줄 나누기·표출 시작 (따라가기는 twLayout이 함)
+    return; }
+  if (SCR.keepOnce) { SCR.keepOnce=false; box.scrollTop=keep; return; }   // 답변 다 나온 뒤: 직접 올려 읽던 중이면 그 자리
+  box.scrollTop=box.scrollHeight;
 }
+/* 질문 올리기 스크롤: 처음 빠르게, 끝에서 감속 */
+const SCROLL_MS = 300;
+const SCR = { sendPending:false, anim:false, keepOnce:false, raf:0 };
+function smoothScroll(y, ms){ const box=$('#chat'); cancelAnimationFrame(SCR.raf);
+  y=Math.max(0, Math.min(y, box.scrollHeight-box.clientHeight));
+  const y0=box.scrollTop, d=y-y0, t0=performance.now(); SCR.anim=true;
+  const step=now=>{ if (!SCR.anim) return; const p=Math.min(1,(now-t0)/ms), e=1-Math.pow(1-p,3); box.scrollTop=y0+d*e;
+    if (p<1) SCR.raf=requestAnimationFrame(step); else SCR.anim=false; };
+  SCR.raf=requestAnimationFrame(step); }
 function showTyping(){ renderChat(); }
 function render(){ renderSummary(); renderBadge(); renderChat(); save(); }
 
