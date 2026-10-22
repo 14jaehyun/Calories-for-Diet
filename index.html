@@ -135,7 +135,7 @@ header h1 small{display:block;font-size:12px;font-weight:450;color:var(--sub);ma
 .field .unit{color:var(--faint);font-size:13px;margin-left:6px}
 .btn{display:block;width:100%;padding:12px;border-radius:12px;background:var(--blue);color:#fff;font-weight:600;margin-top:12px;text-align:center}
 .btn.ghost{background:var(--soft);color:var(--blue)}
-.btn.danger{background:var(--soft2);color:var(--blue2)}          /* 백업 저장 버튼과 같은 모양, 조금 더 흐리게 */
+.btn.danger{background:var(--soft);color:var(--blue)}            /* 백업 저장 버튼과 똑같이 */
 .btn.danger.armed{color:var(--warm)}                                /* 한 번 누른 뒤 경고 상태 */
 .hint{font-size:12.5px;color:var(--sub);line-height:1.55;margin:6px 0}
 .code{font-family:ui-monospace,Menlo,monospace;font-size:12px;background:var(--soft2);border:1px solid var(--line);border-radius:8px;padding:8px;word-break:break-all;margin:6px 0}
@@ -242,7 +242,7 @@ table.hist th:first-child,table.hist td:first-child{text-align:left}
 'use strict';
 /* ============ 저장소 ============ */
 const LS = 'dietnote.v1';
-const APP_VERSION = 'v1.2.5';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
+const APP_VERSION = 'v1.2.6';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
 const DEFAULT_MODEL = 'gemini-flash-latest';
 const KCAL_PER_KG = 7700;
 const NEW_DAY_HOUR = 4;               // 이 시각 이전은 전날로 취급
@@ -1348,7 +1348,7 @@ $('#composer').addEventListener('submit', e=>{ e.preventDefault(); const t=input
   syncSteps();
   setInterval(()=>{ syncSteps(); ensureDay(); render(); checkWeeklyReport(); }, 60*60*1000);                 // 켜져 있는 동안 1시간마다
   document.addEventListener('visibilitychange', ()=>{ if(!document.hidden){ ensureDay(); render(); checkWeeklyReport(); syncSteps(); } });
-  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(()=>{});
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js', {updateViaCache:'none'}).catch(()=>{});
 })();
 </script>
 </body>
