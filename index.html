@@ -237,11 +237,8 @@ table.hist th:first-child,table.hist td:first-child{text-align:left}
 </form>
 
 <!-- 사진 첨부: + 메뉴, 잘라내기, 크게 보기 -->
-<div id="pmenu" hidden>
-  <button type="button" data-pick="cam"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>카메라</button>
-  <button type="button" data-pick="lib"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 16l5-5 4 4 3-3 5 5"/><circle cx="15.5" cy="9" r="1.5"/></svg>사진 보관함</button>
-</div>
-<input id="fCam" type="file" accept="image/*" capture="environment" hidden>
+<div id="pmenu" hidden></div>
+<input id="fCam" type="file" accept="image/*" hidden>
 <input id="fLib" type="file" accept="image/*" hidden>
 <div id="crop" hidden>
   <div class="ch"><button type="button" id="cno">취소</button><b>잘라내기</b><span style="min-width:44px"></span></div>
@@ -311,7 +308,7 @@ table.hist th:first-child,table.hist td:first-child{text-align:left}
 /* ============ 저장소 ============ */
 const LS = 'dietnote.v1';
 const APP_NAME = 'bite with me!';
-const APP_VERSION = 'v1.4.0';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
+const APP_VERSION = 'v1.4.1';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
 const DEFAULT_MODEL = 'gemini-flash-latest';
 const KCAL_PER_KG = 7700;
 const NEW_DAY_HOUR = 4;               // 이 시각 이전은 전날로 취급
@@ -672,10 +669,11 @@ function systemPrompt(){
 - others: type=weight(value=kg, 공복 몸무게), bodyfat(value=%), steps(value=오늘 누적 걸음수), wake(기상, 시각을 말하면 time=HH:MM 24시간제), sleep(취침), undo(기록 취소, target=food|exercise|빈값, text=지울 항목 이름을 현황 데이터 목록에 있는 그대로. "방금 거"처럼 이름을 특정할 수 없으면 text는 비움), profile(생년월일·키·몸무게·성별·목표섭취칼로리·목표단백질 변경 요청 시 바뀌는 항목만, birth는 YYYY-MM-DD, target_kcal·target_protein 사용).
 
 [사진 — 영양성분표·음식 사진]
-- 사용자가 사진을 함께 보낼 수 있다. 사진과 함께 온 글(예: "이거 반 먹었어", "두 개 먹었어")의 지시를 따른다. 사진과 글이 같이 오면 먹었다는 뜻으로 보고 기록한다.
-- 영양성분표 사진: 표의 숫자를 읽는다. "1회 제공량당"인지 "총 내용량당"인지, 몇 g 기준인지 정확히 구분해 먹은 양에 맞춰 계산한다. 무엇인지는 몰라도 된다(name은 표나 포장에서 읽히는 제품명, 없으면 "영양성분표 음식"). 먹은 양을 알 수 있으면 묻지 말고 바로 기록하고, 먹은 양 정보가 없으면 기록하지 말고 reply에서 얼마나 먹었는지만 묻는다.
-- 음식 사진: 사진과 글로 무엇인지와 얼마나 먹었는지를 모두 알 수 있으면 묻지 말고 바로 기록한다. 둘 중 모르는 것이 있으면 기록하지 말고 reply에서 그것만 묻는다(예: "김치찌개랑 공깃밥으로 보이는데 맞나요? 얼마나 드셨어요?"). 사진만으로는 추정이므로 기록할 때 reply에 사진 기준 추정치라고 밝힌다.
-- 이전 메시지에 사진을 보냈고 사용자가 이번 메시지에서 무엇인지·얼마나 먹었는지를 답했으면, 그 사진에 대한 질문의 답으로 보고 바로 기록한다. 기록하기 전에 "이렇게 기록할까요?" 같은 확인 질문은 하지 않는다. 틀렸으면 사용자가 바로잡는다.
+- 사용자가 사진을 함께 보낼 수 있다. 사진과 함께 온 글(예: "이거 반 먹었어", "두 개 먹었어")의 지시를 따른다.
+- 영양성분표 사진: 묻지 말고 바로 기록한다. 표의 숫자를 읽고 "1회 제공량당"인지 "총 내용량당"인지, 몇 g 기준인지 정확히 구분해 계산한다. 먹은 양을 말했으면 그 양으로, 말하지 않았으면 포장 하나(총 내용량)를 다 먹은 것으로 기록하고 reply에 그 기준을 밝힌다. name은 표나 포장에서 읽히는 제품명, 없으면 "영양성분표 음식".
+- 음식 사진 + 무엇인지와 얼마나 먹었는지를 사용자가 글로 알려준 경우: 묻지 말고 바로 기록한다.
+- 음식 사진인데 사용자가 무엇인지나 얼마나 먹었는지를 알려주지 않은 경우: 절대 바로 기록하지 않는다. foods는 빈 배열로 두고, 사진으로 추정한 음식과 양, 칼로리를 reply에 보여준 뒤 "이걸로 기록할까요?"라고 묻는다(예: "김치찌개 1인분과 공깃밥 한 그릇으로 보여요. 약 650kcal, 단백질 28g으로 추정되는데 이걸로 기록할까요?"). 알려준 정보가 있으면 그건 그대로 쓰고 나머지만 추정해서 묻는다.
+- 바로 앞 답변에서 사진 추정치를 보여주고 "기록할까요?"라고 물었는데 사용자가 동의하면("응", "네", "ㅇㅇ", "그래") 그 추정치 그대로 기록한다. 사용자가 고쳐 말하면("반만 먹었어", "그거 된장찌개야") 고친 내용으로 바로 기록한다. 이때는 다시 묻지 않는다.
 
 [현황 데이터 우선 — 중요]
 - 오늘 먹은 음식·운동 목록, 합계, 남은 칼로리, 브리핑은 반드시 아래 [현황 데이터]를 기준으로 한다.
@@ -823,7 +821,7 @@ async function askText(system, user){
 function recordProblem(r){
   const items = r.actions.filter(a=>a.type==='food'||a.type==='exercise');
   if (items.some(a=>!(num(a.kcal)>0) && !(num(a.value)>0) && !/물|water|블랙커피|아메리카노|제로/i.test(a.name||''))) return 'kcal';
-  if (!r.actions.length && /기록(했|하였|해 ?(두|드)|완료|됐|되었)/.test(r.reply)) return 'missing';
+  if (!r.actions.length && /기록(했|하였|해 ?(두|드)|완료|됐|되었)/.test(r.reply) && !/기록(할|해 ?(드릴|둘|둘|드려도|둬도))[^.!?\n]{0,6}(까요|래요|할게요\?)/.test(r.reply)) return 'missing';
   // 취소·삭제했다고 말했는데 undo 항목이 없으면 실제로는 안 지워진 것
   if (!r.actions.some(a=>a.type==='undo') && /(취소|삭제)(했|하였|해 ?드렸|됐|되었|완료)|지웠|지워 ?(드렸|놨|뒀)|뺐어|빼 ?드렸/.test(r.reply)) return 'undo';
   return null;
@@ -1510,7 +1508,7 @@ function trimImgs(){ let n=0; for (let i=S.chat.length-1;i>=0;i--){ const m=S.ch
 (function(){ const menu=$('#pmenu'), plus=$('#plus');
   const place=()=>{ const r=$('#composer').getBoundingClientRect(); menu.style.bottom=(innerHeight-r.top+6)+'px'; };
   plus.addEventListener('pointerdown', e=>e.preventDefault());              // 키보드는 그대로 두고
-  plus.addEventListener('click', ()=>{ if(busy) return; if(menu.hidden){ place(); menu.hidden=false; } else menu.hidden=true; });
+  plus.addEventListener('click', ()=>{ if(busy) return; const f=$('#fLib'); f.value=''; f.click(); });   /* 아이폰 기본 메뉴(사진 보관함·사진 찍기·파일 선택)가 바로 뜸 */
   document.addEventListener('pointerdown', e=>{ if(menu.hidden) return; if(e.target.closest('#pmenu')||e.target.closest('#plus')) return; menu.hidden=true; }, true);
   menu.addEventListener('click', e=>{ const b=e.target.closest('[data-pick]'); if(!b) return; menu.hidden=true;
     const f=b.dataset.pick==='cam'?$('#fCam'):$('#fLib'); f.value=''; f.click(); });
