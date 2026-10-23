@@ -168,6 +168,49 @@ table.hist th:first-child,table.hist td:first-child{text-align:left}
 .empty{color:var(--faint);font-size:13px;padding:8px 0}
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:9px 14px;border-radius:10px;font-size:13px;opacity:.92;z-index:20;pointer-events:none;display:none}
 .toast.show{display:block;animation:fadeIn .2s ease}
+/* ===== 사진 첨부 (v1.4.0) ===== */
+#field{flex:1;min-width:0;display:flex;align-items:flex-end;border:1px solid var(--line);border-radius:20px;background:var(--soft2)}
+#field:focus-within{border-color:var(--blue2);background:#fff}
+#field #input{border:none;background:transparent;border-radius:0;padding:9px 14px 9px 2px;min-width:0}
+#field #input:focus{background:transparent}
+#plus{flex:none;width:34px;height:37px;display:grid;place-items:center;color:var(--faint)}
+#plus svg{width:17px;height:17px}
+#thumb{flex:none;width:22px;height:22px;border-radius:5px;object-fit:cover;margin:0 4px 7.5px 0;border:1px solid var(--line)}
+#pmenu{position:fixed;left:12px;z-index:20;background:#fff;border-radius:14px;box-shadow:0 8px 24px rgba(31,42,55,.16);overflow:hidden;min-width:150px}
+#pmenu button{display:flex;align-items:center;gap:10px;width:100%;padding:12px 15px;font-size:14px;color:var(--ink);background:#fff;text-align:left}
+#pmenu button+button{border-top:1px solid var(--line)}
+#pmenu button:active{background:var(--soft)}
+#pmenu svg{width:18px;height:18px;flex:none}
+.pimg{display:block;max-width:150px;max-height:170px;border-radius:12px;object-fit:cover;margin:0 0 6px auto;border:1px solid var(--line)}
+.msg.user .stack{display:flex;flex-direction:column;align-items:flex-end;max-width:84%}
+.msg.user .stack .bubble{max-width:100%}
+.msg.user .stack .pimg{margin:0}
+.msg.user .stack .pimg+.bubble{margin-top:5px}
+/* 잘라내기 */
+#crop{position:fixed;inset:0;z-index:40;background:#0f151d;color:#fff;display:flex;flex-direction:column;touch-action:none;-webkit-user-select:none;user-select:none}
+#crop[hidden],#viewer[hidden]{display:none}
+#crop .ch{display:flex;justify-content:space-between;align-items:center;padding:calc(env(safe-area-inset-top) + 12px) 18px 8px;font-size:15px}
+#crop .ch b{font-size:16px}#crop .ch button{color:#fff;font-size:15px;min-width:44px;text-align:left}
+#cstage{flex:1;position:relative;overflow:hidden}
+#ccv{position:absolute;display:block}
+#cbox{position:absolute;border:1.5px solid #fff;box-shadow:0 0 0 9999px rgba(0,0,0,.55)}
+#cbox .g{position:absolute;inset:0;pointer-events:none;background:
+  linear-gradient(90deg,transparent calc(33.33% - .5px),rgba(255,255,255,.35) calc(33.33% - .5px),rgba(255,255,255,.35) calc(33.33% + .5px),transparent calc(33.33% + .5px),transparent calc(66.66% - .5px),rgba(255,255,255,.35) calc(66.66% - .5px),rgba(255,255,255,.35) calc(66.66% + .5px),transparent calc(66.66% + .5px)),
+  linear-gradient(transparent calc(33.33% - .5px),rgba(255,255,255,.35) calc(33.33% - .5px),rgba(255,255,255,.35) calc(33.33% + .5px),transparent calc(33.33% + .5px),transparent calc(66.66% - .5px),rgba(255,255,255,.35) calc(66.66% - .5px),rgba(255,255,255,.35) calc(66.66% + .5px),transparent calc(66.66% + .5px))}
+#cbox i{position:absolute;width:44px;height:44px}
+#cbox i:before{content:"";position:absolute;width:18px;height:18px;border:3px solid #fff}
+#cbox i.tl{left:-22px;top:-22px}#cbox i.tl:before{left:19px;top:19px;border-right:0;border-bottom:0}
+#cbox i.tr{right:-22px;top:-22px}#cbox i.tr:before{right:19px;top:19px;border-left:0;border-bottom:0}
+#cbox i.bl{left:-22px;bottom:-22px}#cbox i.bl:before{left:19px;bottom:19px;border-right:0;border-top:0}
+#cbox i.br{right:-22px;bottom:-22px}#cbox i.br:before{right:19px;bottom:19px;border-left:0;border-top:0}
+#crop .cf{display:flex;justify-content:space-between;align-items:center;padding:14px 22px calc(env(safe-area-inset-bottom) + 18px)}
+#crot{width:38px;height:38px;border-radius:50%;border:1.5px solid rgba(255,255,255,.4);display:grid;place-items:center;color:#fff}
+#crot svg{width:18px;height:18px}
+#cok{background:var(--blue);color:#fff;padding:9px 22px;border-radius:20px;font-size:15px;font-weight:700}
+/* 크게 보기 */
+#viewer{position:fixed;inset:0;z-index:45;touch-action:none;-webkit-user-select:none;user-select:none}
+#viewer .vbg{position:absolute;inset:0;background:#000}
+#vimg{position:absolute;left:50%;top:50%;max-width:100%;max-height:100%;transform-origin:center center;will-change:transform;-webkit-user-drag:none}
 </style>
 </head>
 <body>
@@ -183,11 +226,29 @@ table.hist th:first-child,table.hist td:first-child{text-align:left}
 <main id="chat" aria-live="polite"></main>
 
 <form id="composer" autocomplete="off">
-  <textarea id="input" rows="1" placeholder="먹은 것, 운동, 궁금한 것" enterkeyhint="send"></textarea>
+  <div id="field">
+    <button id="plus" type="button" aria-label="사진 첨부"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+    <img id="thumb" alt="첨부한 사진" hidden>
+    <textarea id="input" rows="1" placeholder="먹은 것, 운동, 궁금한 것" enterkeyhint="send"></textarea>
+  </div>
   <button id="send" type="submit" aria-label="보내기">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>
   </button>
 </form>
+
+<!-- 사진 첨부: + 메뉴, 잘라내기, 크게 보기 -->
+<div id="pmenu" hidden>
+  <button type="button" data-pick="cam"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>카메라</button>
+  <button type="button" data-pick="lib"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 16l5-5 4 4 3-3 5 5"/><circle cx="15.5" cy="9" r="1.5"/></svg>사진 보관함</button>
+</div>
+<input id="fCam" type="file" accept="image/*" capture="environment" hidden>
+<input id="fLib" type="file" accept="image/*" hidden>
+<div id="crop" hidden>
+  <div class="ch"><button type="button" id="cno">취소</button><b>잘라내기</b><span style="min-width:44px"></span></div>
+  <div id="cstage"><canvas id="ccv"></canvas><div id="cbox"><div class="g"></div><i class="tl" data-h="tl"></i><i class="tr" data-h="tr"></i><i class="bl" data-h="bl"></i><i class="br" data-h="br"></i></div></div>
+  <div class="cf"><button type="button" id="crot" aria-label="90도 돌리기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 12a8 8 0 1 0 3-6.2"/><path d="M4 4v4h4"/></svg></button><button type="button" id="cok">완료</button></div>
+</div>
+<div id="viewer" hidden><div class="vbg"></div><img id="vimg" alt=""></div>
 
 <!-- 기록 화면: 왼쪽으로 밀면 열리고 오른쪽으로 밀면 닫힘 -->
 <section id="dayPanel" role="dialog" aria-label="기록">
@@ -250,7 +311,7 @@ table.hist th:first-child,table.hist td:first-child{text-align:left}
 /* ============ 저장소 ============ */
 const LS = 'dietnote.v1';
 const APP_NAME = 'bite with me!';
-const APP_VERSION = 'v1.3.4';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
+const APP_VERSION = 'v1.4.0';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
 const DEFAULT_MODEL = 'gemini-flash-latest';
 const KCAL_PER_KG = 7700;
 const NEW_DAY_HOUR = 4;               // 이 시각 이전은 전날로 취급
@@ -610,6 +671,12 @@ function systemPrompt(){
 - exercises: 운동이나 일상 걸음 외의 특별한 신체활동. name, amount(시간/세트 등, 모르면 일반적인 1회 기준으로 가정), kcal(숫자, 0 금지) = 사용자 체중 기준 MET로 계산한 소모량에서 같은 시간의 기초대사량분을 뺀 순증가분. 걷기·산책은 걸음수로 이미 계산되므로 기록하지 말고 그렇게 안내한다. 달리기·등산처럼 걸음수에 잡히는 운동은 (예상 걸음 × 걸음당kcal)을 뺀 추가분만 넣는다.
 - others: type=weight(value=kg, 공복 몸무게), bodyfat(value=%), steps(value=오늘 누적 걸음수), wake(기상, 시각을 말하면 time=HH:MM 24시간제), sleep(취침), undo(기록 취소, target=food|exercise|빈값, text=지울 항목 이름을 현황 데이터 목록에 있는 그대로. "방금 거"처럼 이름을 특정할 수 없으면 text는 비움), profile(생년월일·키·몸무게·성별·목표섭취칼로리·목표단백질 변경 요청 시 바뀌는 항목만, birth는 YYYY-MM-DD, target_kcal·target_protein 사용).
 
+[사진 — 영양성분표·음식 사진]
+- 사용자가 사진을 함께 보낼 수 있다. 사진과 함께 온 글(예: "이거 반 먹었어", "두 개 먹었어")의 지시를 따른다. 사진과 글이 같이 오면 먹었다는 뜻으로 보고 기록한다.
+- 영양성분표 사진: 표의 숫자를 읽는다. "1회 제공량당"인지 "총 내용량당"인지, 몇 g 기준인지 정확히 구분해 먹은 양에 맞춰 계산한다. 무엇인지는 몰라도 된다(name은 표나 포장에서 읽히는 제품명, 없으면 "영양성분표 음식"). 먹은 양을 알 수 있으면 묻지 말고 바로 기록하고, 먹은 양 정보가 없으면 기록하지 말고 reply에서 얼마나 먹었는지만 묻는다.
+- 음식 사진: 사진과 글로 무엇인지와 얼마나 먹었는지를 모두 알 수 있으면 묻지 말고 바로 기록한다. 둘 중 모르는 것이 있으면 기록하지 말고 reply에서 그것만 묻는다(예: "김치찌개랑 공깃밥으로 보이는데 맞나요? 얼마나 드셨어요?"). 사진만으로는 추정이므로 기록할 때 reply에 사진 기준 추정치라고 밝힌다.
+- 이전 메시지에 사진을 보냈고 사용자가 이번 메시지에서 무엇인지·얼마나 먹었는지를 답했으면, 그 사진에 대한 질문의 답으로 보고 바로 기록한다. 기록하기 전에 "이렇게 기록할까요?" 같은 확인 질문은 하지 않는다. 틀렸으면 사용자가 바로잡는다.
+
 [현황 데이터 우선 — 중요]
 - 오늘 먹은 음식·운동 목록, 합계, 남은 칼로리, 브리핑은 반드시 아래 [현황 데이터]를 기준으로 한다.
 - 대화 기록에 나온 기록은 이후 사용자가 앱에서 직접 수정·삭제했을 수 있다. 대화 기록과 현황 데이터가 다르면 항상 현황 데이터가 최신이며 정답이다. 현황에 없는 음식·운동은 언급하지 않는다.
@@ -642,26 +709,27 @@ const TIMEOUT_MS = 45000;
 const sleepMs = ms => new Promise(r=>setTimeout(r,ms));
 class AIError extends Error { constructor(msg, retryable){ super(msg); this.retryable=retryable; } }
 // 503/500 등 서버 혼잡은 잠시 뒤 자동 재시도 → 그래도 안 되면 가벼운 모델로 한 번 더
-async function askGeminiRobust(userText, note){
+async function askGeminiRobust(userText, note, img){
   const main=(S.settings.model||DEFAULT_MODEL).trim();
   const plan=[[main,0],[main,2000],[main,5000]]; if (main!==FALLBACK_MODEL) plan.push([FALLBACK_MODEL,1000]);
   let last;
   for (const [model,wait] of plan){
     if (wait) await sleepMs(wait);
-    try { return await askGemini(userText, note, model); }
+    try { return await askGemini(userText, note, model, img); }
     catch(e){ last=e; if (!e.retryable) throw e; }
   }
   throw last;
 }
-async function askGemini(userText, note, modelOverride){
+async function askGemini(userText, note, modelOverride, img){
   const key=S.settings.apiKey, model=(modelOverride||S.settings.model||DEFAULT_MODEL).trim();
   const hist=[];
   for (const m of S.chat.slice(-14)) { if (m.sys) continue;
-    const role = m.role==='user'?'user':'model'; const text = m.role==='user'? m.text : (m.text + (m.recText?'\n'+m.recText:''));
+    const role = m.role==='user'?'user':'model'; const text = m.role==='user'? ((m.text||'') + (m.img?(m.text?'\n':'')+'[사진 첨부]':'')) : (m.text + (m.recText?'\n'+m.recText:''));
     if (hist.length && hist[hist.length-1].role===role) hist[hist.length-1].parts[0].text += '\n'+text; else hist.push({role, parts:[{text}]}); }
   while (hist.length && hist[0].role!=='user') hist.shift();
   if (!hist.length || hist[hist.length-1].role!=='user') hist.push({role:'user', parts:[{text:userText}]});
   if (note) hist[hist.length-1].parts[0].text += '\n\n[앱 알림] ' + note;
+  if (img) hist[hist.length-1].parts.push({inlineData:{mimeType:'image/jpeg', data:img.data}});   // 이번 메시지에 붙인 사진
   const body = { systemInstruction:{parts:[{text:systemPrompt()}]}, contents:hist,
     generationConfig:{ responseMimeType:'application/json', responseSchema:SCHEMA, ...GEN } };
   const raw = await geminiRaw(body, model, 'chat');
@@ -837,14 +905,21 @@ function twLayout(){
 }
 ['touchmove','wheel'].forEach(ev=>$('#chat').addEventListener(ev, ()=>{ if (TW.m) TW.userScrolled=true; if (SCR.anim) { SCR.anim=false; cancelAnimationFrame(SCR.raf); } }, {passive:true}));
 document.addEventListener('visibilitychange', ()=>{ if (document.hidden) finishTyping(); });
-function addMsg(role, text, extra={}){ const m={role, text, t:Date.now(), ...extra}; S.chat.push(m);
+function addMsg(role, text, extra={}){ const m={role, text, t:Date.now(), ...extra}; S.chat.push(m); if (m.img) trimImgs();
   if (TW.next) { TW.next=false; if (role==='bot' && text) { finishTyping(); TW.m=m; TW.lines=null; } } if (S.chat.length>400) S.chat=S.chat.slice(-400); save(); renderChat(); return m; }
-let busy=false;
-async function handle(text){
-  text=text.trim(); if(!text||busy) return;
+let busy=false, LASTIMG=null, RECENT=null;   // RECENT: 방금 보낸 사진 — AI가 되물은 뒤 바로 다음 답에도 같은 사진을 붙여 보냄
+async function handle(text, img){
+  text=text.trim(); if((!text&&!img)||busy) return;
   finishTyping();                                        // 답변이 아직 나오는 중이면 바로 끝까지 보여주고 진행
   SCR.sendPending=true; SCR.spacer=true;                  // 이 질문을 화면 맨 위로
-  addMsg('user', text);
+  const um=addMsg('user', text, img?{img:img.thumb}:{});
+  if (img) RECENT={m:um, img};
+  if (img) {                                             // 사진: 바로 AI로 (빠른 숫자 입력·리포트 요청 판단은 건너뜀)
+    if (!profileReady()) { addMsg('bot', '사진 기록은 기본 정보를 먼저 설정한 뒤에 쓸 수 있어요.\n예) 생년월일 1988-03-15, 남성, 키 175, 몸무게 78, 목표 1800kcal, 단백질 120g'); return; }
+    ensureDay();
+    if (!S.settings.apiKey) { addMsg('bot','사진을 읽으려면 AI가 필요해요. 기록 화면(왼쪽으로 밀기)의 설정에서 Gemini API 키를 입력해 주세요.'); return; }
+    await runAI(text, img); return;
+  }
   // 1) 첫 설정
   if (!profileReady()) {
     const o=parseProfile(text);
@@ -875,10 +950,11 @@ async function handle(text){
   if (!S.settings.apiKey) { addMsg('bot','음식·운동 칼로리 추정과 질문 답변은 AI가 필요해요. 기록 화면(왼쪽으로 밀기)의 설정에서 Gemini API 키를 입력해 주세요.\n(몸무게·체지방률·걸음수·기상·취침은 지금도 기록할 수 있어요.)'); return; }
   await runAI(text);
 }
-async function runAI(text){
+async function runAI(text, img){
+  if (!img && RECENT) { const us=S.chat.filter(m=>m.role==='user'); if (us.length>=2 && us[us.length-2]===RECENT.m) img=RECENT.img; else RECENT=null; }
   busy=true; $('#send').disabled=true; showTyping(true);
   try {
-    let r = await askGeminiRobust(text);
+    let r = await askGeminiRobust(text, undefined, img);
     // 답변과 실제 기록 데이터가 어긋나면 한 번 더 요청해서 바로잡기
     const prob = recordProblem(r);
     if (prob) {
@@ -887,12 +963,13 @@ async function runAI(text){
         : prob==='undo'
         ? '직전 응답에서 reply에는 기록을 취소·삭제했다고 썼지만 others에 undo 항목이 없어서 실제로는 지워지지 않았다. 지울 항목마다 others에 type=undo(target=food|exercise, text=현황 데이터 목록에 있는 항목 이름 그대로)를 넣어 다시 응답하라. 취소할 상황이 아니었다면 reply에서 취소했다는 말을 빼라.'
         : '직전 응답에서 reply에는 기록했다고 썼지만 foods/exercises/others 배열이 비어 있었다. 기록할 항목을 배열에 반드시 넣어 다시 응답하라.';
-      try { const r2 = await askGeminiRobust(text, note); if (!recordProblem(r2)) r = r2; else r = Object.assign(r2, {warn:true}); }
+      try { const r2 = await askGeminiRobust(text, note, img); if (!recordProblem(r2)) r = r2; else r = Object.assign(r2, {warn:true}); }
       catch(_) { r.warn = true; }
     }
     if (r.warn || recordProblem(r)) {
       // 그래도 어긋나면 잘못된 기록을 남기지 않고 알림
-      addMsg('bot', 'AI 답변과 기록 데이터가 맞지 않아 저장하지 않았어요. 다시 보내 주세요.\n(AI 답변: ' + (r.reply||'-') + ')', {sys:true, retry:text});
+      addMsg('bot', 'AI 답변과 기록 데이터가 맞지 않아 저장하지 않았어요. 다시 보내 주세요.\n(AI 답변: ' + (r.reply||'-') + ')', {sys:true, retry:text, retryImg:!!img});
+      if (img) LASTIMG=img;
       return;
     }
     const {recs, notes, touched} = applyActions(r.actions);
@@ -902,14 +979,15 @@ async function runAI(text){
     typeNextMsg();
     addMsg('bot', txt || '기록했어요.', { recs: recs.length?recs:undefined, recText: recText||undefined });
   } catch(e) {
-    addMsg('bot', (e && e.message) || 'AI에 연결하지 못했어요.', {sys:true, retry:text});
+    addMsg('bot', (e && e.message) || 'AI에 연결하지 못했어요.', {sys:true, retry:text, retryImg:!!img});
+    if (img) LASTIMG=img;
   } finally { busy=false; $('#send').disabled=false; showTyping(false); render(); }
 }
 // 오류 메시지의 "다시 보내기" 버튼
 $('#chat').addEventListener('click', e=>{
   const b=e.target.closest('[data-retry]'); if(!b || busy) return;
   const m=S.chat[+b.dataset.retry]; if(!m || !m.retry) return;
-  const text=m.retry; delete m.retry; save(); runAI(text);
+  const text=m.retry, img=m.retryImg?LASTIMG:null; delete m.retry; delete m.retryImg; save(); runAI(text, img||undefined);
 });
 
 /* ============ 주간 리포트 ============ */
@@ -1107,7 +1185,8 @@ function renderChat(){
     if (m.recs && !typing) inner += `<div class="rec">` + m.recs.map(x=>`<div class="rec-item"><div class="rec-row"><span class="rn"><span class="tag">${x.k}</span>${esc(x.name)} <em>${esc(x.amount||'')}</em></span><span class="rk num">${N(x.kcal)} kcal</span></div>${x.k==='섭취'?`<div class="rec-m num">탄 ${N(x.carb,1)} · 단 ${N(x.protein,1)} · 지 ${N(x.fat,1)} g</div>`:''}</div>`).join('') + `</div>`;
     if (m.retry && i===S.chat.length-1) inner += `<button class="retry" data-retry="${i}">다시 보내기</button>`;
     html += m.role==='user'
-      ? `<div class="msg user"><span class="time">${hm(m.t)}</span><div class="bubble">${inner}</div></div>`
+      ? (m.img ? `<div class="msg user"><span class="time">${hm(m.t)}</span><div class="stack"><img class="pimg" src="${m.img}" alt="보낸 사진" data-view="${i}">${m.text?`<div class="bubble">${inner}</div>`:''}</div></div>`
+               : `<div class="msg user"><span class="time">${hm(m.t)}</span><div class="bubble">${inner}</div></div>`)
       : `<div class="msg bot"><div class="bubble${m.kind==='report'?' wide':''}"${typing&&TW.lines&&TW.w?` style="width:${TW.w}px"`:''}>${inner}</div>${typing?'':`<span class="time">${hm(m.t)}</span>`}</div>`;   // 답변 시간은 표출이 끝난 뒤에
   }
   if (busy) html += `<div class="msg bot" id="typing"><div class="bubble typing"><span></span><span></span><span></span></div></div>`;
@@ -1216,7 +1295,7 @@ function closePanel(){ panelX(innerWidth, true); panelOpen=false;
   clearTimeout(closePanel._t); closePanel._t=setTimeout(()=>{ if(!panelOpen){ panel.classList.remove('show'); panel.style.transform=''; } }, 280); }
 (function swipe(){
   let sx=0, sy=0, st=0, lock=null, active=false;   // lock: 'h' 가로로 미는 중, 'v' 세로 스크롤
-  const sheetOpen = () => !!document.querySelector('#setSheet.open');
+  const sheetOpen = () => !!document.querySelector('#setSheet.open') || !$('#crop').hidden || !$('#viewer').hidden;
   document.addEventListener('touchstart', e=>{
     if (e.touches.length!==1 || sheetOpen()) { active=false; return; }
     const t=e.touches[0]; sx=t.clientX; sy=t.clientY; st=Date.now(); lock=null; active=true;
@@ -1413,7 +1492,109 @@ function intro(){
 const input=$('#input');
 input.addEventListener('input', ()=>{ input.style.height='auto'; input.style.height=Math.min(120,input.scrollHeight)+'px'; });
 input.addEventListener('keydown', e=>{ if(e.key==='Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); $('#composer').requestSubmit(); } });
-$('#composer').addEventListener('submit', e=>{ e.preventDefault(); const t=input.value; if(!t.trim()||busy) return; input.value=''; input.style.height='auto'; handle(t); });
+$('#composer').addEventListener('submit', e=>{ e.preventDefault(); const t=input.value; if((!t.trim()&&!PIMG)||busy) return; const img=PIMG; input.value=''; input.style.height='auto'; setPending(null); handle(t, img); });
+
+/* ============ 사진 첨부 (v1.4.0) ============
+   입력창 안 + → 카메라 / 사진 보관함 (바깥 누르면 닫힘). 붙여넣기도 됨.
+   고른 사진은 잘라내기를 한 번 거쳐 + 뒤 작은 썸네일로. 썸네일 누르면 크게 보기, 글이 빈 채 백스페이스로 빼기.
+   AI에는 긴 변 1280px JPEG로 보내고, 대화 기록에는 작은 사진(긴 변 400px)만 남김 */
+let PIMG=null;   // {data: 보낼 base64, thumb: 대화에 남길 작은 사진 dataURL, view: 크게 보기용 dataURL}
+function setPending(p){ PIMG=p; const t=$('#thumb'); if(p){ t.src=p.view; t.hidden=false; } else { t.hidden=true; t.removeAttribute('src'); } }
+function canvasOf(w,h){ const c=document.createElement('canvas'); c.width=Math.max(1,Math.round(w)); c.height=Math.max(1,Math.round(h)); return c; }
+function scaled(src, max){ const k=Math.min(1, max/Math.max(src.width,src.height)); const c=canvasOf(src.width*k, src.height*k);
+  const g=c.getContext('2d'); g.imageSmoothingQuality='high'; g.drawImage(src,0,0,c.width,c.height); return c; }
+// 대화 기록에는 최근 사진 15장만 남김 (저장 공간)
+function trimImgs(){ let n=0; for (let i=S.chat.length-1;i>=0;i--){ const m=S.chat[i]; if(m.img && ++n>15){ delete m.img; m.imgGone=true; } } }
+
+/* --- + 메뉴 --- */
+(function(){ const menu=$('#pmenu'), plus=$('#plus');
+  const place=()=>{ const r=$('#composer').getBoundingClientRect(); menu.style.bottom=(innerHeight-r.top+6)+'px'; };
+  plus.addEventListener('pointerdown', e=>e.preventDefault());              // 키보드는 그대로 두고
+  plus.addEventListener('click', ()=>{ if(busy) return; if(menu.hidden){ place(); menu.hidden=false; } else menu.hidden=true; });
+  document.addEventListener('pointerdown', e=>{ if(menu.hidden) return; if(e.target.closest('#pmenu')||e.target.closest('#plus')) return; menu.hidden=true; }, true);
+  menu.addEventListener('click', e=>{ const b=e.target.closest('[data-pick]'); if(!b) return; menu.hidden=true;
+    const f=b.dataset.pick==='cam'?$('#fCam'):$('#fLib'); f.value=''; f.click(); });
+  ['#fCam','#fLib'].forEach(s=>$(s).addEventListener('change', e=>{ const f=e.target.files&&e.target.files[0]; if(f) openCrop(f); }));
+  // 붙여넣기: 사진이 있으면 잘라내기로
+  $('#input').addEventListener('paste', e=>{ const it=[...((e.clipboardData&&e.clipboardData.items)||[])].find(x=>x.kind==='file'&&/^image\//.test(x.type));
+    if(!it) return; const f=it.getAsFile(); if(!f) return; e.preventDefault(); openCrop(f); });
+  // 글이 빈 채(커서가 맨 앞) 백스페이스 → 사진 빼기
+  $('#input').addEventListener('keydown', e=>{ if(e.key==='Backspace' && PIMG && $('#input').selectionStart===0 && $('#input').selectionEnd===0){ e.preventDefault(); setPending(null); } });
+  $('#thumb').addEventListener('click', ()=>{ if(PIMG) openViewer(PIMG.view); });
+  $('#chat').addEventListener('click', e=>{ const im=e.target.closest('img.pimg'); if(im) openViewer(im.src); });
+})();
+
+/* --- 잘라내기 --- */
+const CR={src:null, box:null, k:1, ox:0, oy:0};   // src: 작업용 캔버스(긴 변 2400px까지), box: 화면 좌표의 자르기 틀
+function loadImage(file){ return new Promise((ok,ng)=>{ const u=URL.createObjectURL(file), im=new Image();
+  im.onload=()=>{ URL.revokeObjectURL(u); ok(im); }; im.onerror=()=>{ URL.revokeObjectURL(u); ng(new Error('img')); }; im.src=u; }); }
+async function openCrop(file){
+  let im; try { im=await loadImage(file); } catch(_) { toast('사진을 열지 못했어요'); return; }
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  CR.src=scaled(im, 2400); $('#crop').hidden=false; requestAnimationFrame(()=>layCrop(true)); }
+function layCrop(reset){ const st=$('#cstage'), W=st.clientWidth, H=st.clientHeight, pad=26, s=CR.src;
+  const k=Math.min((W-pad*2)/s.width, (H-pad*2)/s.height); const w=s.width*k, h=s.height*k, ox=(W-w)/2, oy=(H-h)/2;
+  const cv=$('#ccv'), dpr=window.devicePixelRatio||1; cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr);
+  Object.assign(cv.style,{left:ox+'px',top:oy+'px',width:w+'px',height:h+'px'});
+  const g=cv.getContext('2d'); g.imageSmoothingQuality='high'; g.drawImage(s,0,0,cv.width,cv.height);
+  if (reset || !CR.box) CR.box={x:ox,y:oy,w,h};
+  CR.k=k; CR.ox=ox; CR.oy=oy; CR.lim={x:ox,y:oy,w,h}; drawBox(); }
+function drawBox(){ const b=CR.box; Object.assign($('#cbox').style,{left:b.x+'px',top:b.y+'px',width:b.w+'px',height:b.h+'px'}); }
+function closeCrop(){ $('#crop').hidden=true; CR.src=null; CR.box=null; }
+(function(){ const box=$('#cbox'); let d=null; const MIN=48;
+  box.addEventListener('pointerdown', e=>{ e.preventDefault(); const h=e.target.closest('[data-h]'); d={h:h?h.dataset.h:'move', x:e.clientX, y:e.clientY, b:{...CR.box}};
+    try{ box.setPointerCapture(e.pointerId); }catch(_){} });
+  box.addEventListener('pointermove', e=>{ if(!d) return; const L=CR.lim, dx=e.clientX-d.x, dy=e.clientY-d.y; let {x,y,w,h}=d.b;
+    if (d.h==='move'){ x=Math.min(Math.max(L.x,x+dx),L.x+L.w-w); y=Math.min(Math.max(L.y,y+dy),L.y+L.h-h); }
+    else { let x2=x+w, y2=y+h;
+      if (d.h[1]==='l') x=Math.min(Math.max(L.x,x+dx),x2-MIN); else x2=Math.max(Math.min(L.x+L.w,x2+dx),x+MIN);
+      if (d.h[0]==='t') y=Math.min(Math.max(L.y,y+dy),y2-MIN); else y2=Math.max(Math.min(L.y+L.h,y2+dy),y+MIN);
+      w=x2-x; h=y2-y; }
+    CR.box={x,y,w,h}; drawBox(); });
+  const up=()=>{ d=null; }; box.addEventListener('pointerup',up); box.addEventListener('pointercancel',up);
+  $('#cno').addEventListener('click', closeCrop);
+  $('#crot').addEventListener('click', ()=>{ const s=CR.src, c=canvasOf(s.height,s.width), g=c.getContext('2d');   // 시계 방향 90°
+    g.translate(c.width,0); g.rotate(Math.PI/2); g.drawImage(s,0,0); CR.src=c; layCrop(true); });
+  $('#cok').addEventListener('click', ()=>{ const s=CR.src, b=CR.box, k=CR.k;
+    const sx=(b.x-CR.ox)/k, sy=(b.y-CR.oy)/k, sw=b.w/k, sh=b.h/k; const cut=canvasOf(sw,sh);
+    cut.getContext('2d').drawImage(s, sx,sy,sw,sh, 0,0,cut.width,cut.height);
+    const send=scaled(cut,1280), small=scaled(cut,400);
+    setPending({ data:send.toDataURL('image/jpeg',0.85).split(',')[1], thumb:small.toDataURL('image/jpeg',0.72), view:send.toDataURL('image/jpeg',0.85) });
+    closeCrop(); });
+  window.addEventListener('resize', ()=>{ if(!$('#crop').hidden && CR.src) layCrop(true); });
+})();
+
+/* --- 크게 보기: 두 손가락 확대, 확대 중엔 끌어서 이동. 아래로 끌면 사진 보관함처럼 작아지며 닫힘 (약 100px 또는 빠르게 휙) --- */
+const VW={s:1, x:0, y:0, P:new Map(), g:null};
+function vApply(anim){ const im=$('#vimg'); im.style.transition=anim?'transform .25s cubic-bezier(.2,.8,.3,1)':'';
+  im.style.transform=`translate(-50%,-50%) translate(${VW.x}px,${VW.y}px) scale(${VW.s})`; }
+function openViewer(src){ if(!src) return; if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  const v=$('#viewer'); $('#vimg').src=src; VW.s=1; VW.x=0; VW.y=0; VW.P.clear(); VW.g=null; vApply(false);
+  const bg=v.querySelector('.vbg'); bg.style.transition=''; bg.style.opacity=0; v.hidden=false;
+  requestAnimationFrame(()=>{ bg.style.transition='opacity .2s'; bg.style.opacity=1; }); }
+function closeViewer(){ const v=$('#viewer'), bg=v.querySelector('.vbg'), im=$('#vimg');
+  im.style.transition='transform .22s ease-in, opacity .22s'; bg.style.transition='opacity .22s';
+  im.style.transform=`translate(-50%,-50%) translate(${VW.x}px,${VW.y+innerHeight*0.45}px) scale(${Math.min(VW.s,.7)})`; im.style.opacity=0; bg.style.opacity=0;
+  setTimeout(()=>{ v.hidden=true; im.style.opacity=''; im.style.transition=''; }, 230); }
+(function(){ const v=$('#viewer'), bg=v.querySelector('.vbg');
+  const two=()=>{ const [a,b]=[...VW.P.values()]; return {d:Math.hypot(a.x-b.x,a.y-b.y)||1, mx:(a.x+b.x)/2, my:(a.y+b.y)/2}; };
+  const start=()=>{ if (VW.P.size>=2){ const t=two(); VW.g={m:'pinch', d0:t.d, s0:VW.s, mx:t.mx, my:t.my, x0:VW.x, y0:VW.y}; }
+    else if (VW.P.size===1){ const p=[...VW.P.values()][0]; VW.g={m:VW.s>1.01?'pan':'drag', sx:p.x, sy:p.y, x0:VW.x, y0:VW.y, hist:[[performance.now(),p.y]]}; }
+    else VW.g=null; };
+  v.addEventListener('pointerdown', e=>{ e.preventDefault(); try{ v.setPointerCapture(e.pointerId); }catch(_){} VW.P.set(e.pointerId,{x:e.clientX,y:e.clientY}); start(); });
+  v.addEventListener('pointermove', e=>{ if(!VW.P.has(e.pointerId)||!VW.g) return; VW.P.set(e.pointerId,{x:e.clientX,y:e.clientY}); const g=VW.g;
+    if (g.m==='pinch' && VW.P.size>=2){ const t=two(); VW.s=Math.min(5,Math.max(.6,g.s0*t.d/g.d0)); VW.x=g.x0+(t.mx-g.mx); VW.y=g.y0+(t.my-g.my); bg.style.opacity=1; vApply(false); }
+    else if (g.m==='pan'){ const p=VW.P.get(e.pointerId); VW.x=g.x0+(p.x-g.sx); VW.y=g.y0+(p.y-g.sy); vApply(false); }
+    else if (g.m==='drag'){ const p=VW.P.get(e.pointerId), dx=p.x-g.sx, dy=p.y-g.sy; g.hist.push([performance.now(),p.y]); if(g.hist.length>6) g.hist.shift();
+      const down=Math.max(0,dy); VW.x=dx; VW.y=dy; VW.s=1-Math.min(.3,down/900); bg.style.transition=''; bg.style.opacity=String(1-Math.min(.85,down/350)); vApply(false); } });
+  const end=e=>{ if(!VW.P.has(e.pointerId)) return; const g=VW.g; VW.P.delete(e.pointerId);
+    if (g && g.m==='drag' && VW.P.size===0){ const h=g.hist, a=h[0], b=h[h.length-1], vel=(b[1]-a[1])/Math.max(1,b[0]-a[0]);   // px/ms, 아래가 +
+      if (VW.y>100 || (vel>0.5 && VW.y>20)) { closeViewer(); return; }
+      VW.s=1; VW.x=0; VW.y=0; bg.style.transition='opacity .25s'; bg.style.opacity=1; vApply(true); VW.g=null; return; }
+    if (g && g.m==='pinch' && VW.s<=1.05){ VW.s=1; VW.x=0; VW.y=0; vApply(true); }
+    start(); };
+  v.addEventListener('pointerup', end); v.addEventListener('pointercancel', end);
+})();
 
 (function boot(){
   // 백업 불러오기 직후 다시 띄웠으면 결과 알림
