@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>bite with me!</title>
+<title>Bite with me!</title>
 <meta name="theme-color" content="#ffffff">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="color-scheme" content="light">
-<meta name="apple-mobile-web-app-title" content="bite with me!">
+<meta name="apple-mobile-web-app-title" content="Bite with me!">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="icon-192.png">
@@ -51,7 +51,11 @@ header h1 small{display:block;font-size:12px;font-weight:450;color:var(--sub);ma
 .tbar{height:5px;border-radius:3px;background:var(--mint-track);overflow:hidden;margin-top:8px}
 .tbar i{display:block;height:100%;border-radius:3px;background:var(--mint-bar);transition:width .3s}
 .tbar.p i{background:var(--mint-bar2)}
-.tile.over .big{color:var(--warm)}.tile.over .tbar i{background:var(--warm)}
+/* 막대 아래 삼각형: 못 채웠으면 노란색으로 지금 위치를 따라감, 넘기면 막대 끝에서 막대보다 살짝 연한 색 */
+.tb{position:relative;padding-bottom:7px}
+.tri{position:absolute;top:10px;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:6px solid var(--tri);transition:left .3s,transform .3s}
+:root{--tri:#FFC000;--tri-k:#6CC39B;--tri-p:#8FD1B3}
+.tile.over .tri{--tri:var(--tri-k)}.tile.p.over .tri{--tri:var(--tri-p)}
 .pos{color:var(--warm)!important}.neg{color:var(--blue)!important}
 /* 브리핑 상단 4칸 */
 .d-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:4px}
@@ -145,6 +149,10 @@ body.kb #composer{padding-bottom:8px}   /* 키보드가 올라와 있으면 홈 
 .btn.danger{background:var(--soft);color:var(--blue)}            /* 백업 저장 버튼과 똑같이 */
 .btn.danger.armed{color:var(--warm)}                                /* 한 번 누른 뒤 경고 상태 */
 .hint{font-size:12.5px;color:var(--sub);line-height:1.55;margin:6px 0}
+.urlbox{display:flex;align-items:center;border:1px solid var(--line);border-radius:8px;background:var(--soft2);margin:6px 0;padding-left:10px}
+.urlbox span{flex:1;min-width:0;font-family:ui-monospace,Menlo,monospace;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.urlbox button{flex:none;width:38px;height:36px;display:grid;place-items:center;color:var(--sub)}
+.urlbox button svg{width:18px;height:18px}
 .code{font-family:ui-monospace,Menlo,monospace;font-size:12px;background:var(--soft2);border:1px solid var(--line);border-radius:8px;padding:8px;word-break:break-all;margin:6px 0}
 .row2{display:flex;gap:8px}.row2 .btn{flex:1}
 .ver{text-align:center;font-size:11.5px;color:var(--faint);margin:18px 0 0}
@@ -159,6 +167,8 @@ body.kb #composer{padding-bottom:8px}   /* 키보드가 올라와 있으면 홈 
 .list-item{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
 .list-item .grow{flex:1;min-width:0}
 .list-item small{display:block;color:var(--sub);font-size:12px;margin-top:1px}
+.pull{position:relative;will-change:transform}
+.pull.ready .num{color:var(--blue)}
 .del{color:var(--faint);width:30px;height:30px;border-radius:8px;display:grid;place-items:center;flex:none}
 .del:active{background:var(--soft)}
 table.hist{width:100%;border-collapse:collapse;font-size:13px}
@@ -211,12 +221,35 @@ table.hist th:first-child,table.hist td:first-child{text-align:left}
 #viewer{position:fixed;inset:0;z-index:45;touch-action:none;-webkit-user-select:none;user-select:none}
 #viewer .vbg{position:absolute;inset:0;background:#000}
 #vimg{position:absolute;left:50%;top:50%;max-width:100%;max-height:100%;transform-origin:center center;will-change:transform;-webkit-user-drag:none}
+/* ===== 주청 테마 (하늘·주황, v1.5.0) — 청녹이 기본 ===== */
+body.theme-jc{--jb:#1F6F9E;--jc:#E8573A;--jcl:#F4A894}
+.theme-jc header h1{color:var(--jb)}.theme-jc header h1 .me{color:var(--jc)}
+.theme-jc header h1 small{color:var(--jc)}
+.theme-jc #badge img{filter:drop-shadow(1.5px 2.7px 0 #E8573A)}
+.theme-jc #summary{background:var(--jb);box-shadow:2.5px 2.5px 0 var(--jc)}
+.theme-jc .tile .lab,.theme-jc .tile .sub,.theme-jc .tile .big,.theme-jc .tile .big small,.theme-jc #summary .s-label{color:#fff}
+.theme-jc .tile .lab{font-weight:600}.theme-jc .tile .sub{font-weight:600}
+.theme-jc .tbar{background:#fff}.theme-jc .tbar i,.theme-jc .tbar.p i{background:var(--jc)}
+.theme-jc{--tri-k:#FFC000;--tri-p:#FFC000}
+.theme-jc .user .bubble{background:#F0F0F0;color:var(--jc)}
+.theme-jc .bot .bubble{background:#F1F5F8;color:var(--jc)}
+.theme-jc .rec{border-top-color:var(--jcl)}.theme-jc .rec-m,.theme-jc .rec em{color:var(--jc)}
+.theme-jc .tag{color:var(--jc);border-color:var(--jcl)}
+.theme-jc #send{background:#F2F2F2;color:var(--jb)}.theme-jc #send:disabled{background:#F2F2F2;color:#9fb8c9}
+.theme-jc #plus{color:var(--jb)}.theme-jc #input{color:var(--jc)}.theme-jc #input::placeholder{color:var(--jb);opacity:.85}
+.theme-jc .icon-btn{color:var(--jb)}
+.theme-jc .panel-h h2,.theme-jc .sheet-h h2,.theme-jc .sec{color:var(--jb)}
+.theme-jc .list-item,.theme-jc .list-item small,.theme-jc .list-item span,.theme-jc .del,.theme-jc table.hist th,.theme-jc table.hist td,.theme-jc .empty,.theme-jc .d-grid,.theme-jc .d-grid small,.theme-jc .s-label{color:var(--jc)}
+.theme-jc .pos,.theme-jc .neg{color:var(--jc)!important}
+.theme-jc .field label,.theme-jc .field input,.theme-jc .field select,.theme-jc .field .unit,.theme-jc .hint,.theme-jc .ver,.theme-jc .usage td,.theme-jc .usage th,.theme-jc .ureset,.theme-jc .urlbox span{color:var(--jc)}
+.theme-jc .btn{background:var(--jb)}.theme-jc .btn.ghost,.theme-jc .btn.danger{background:var(--soft);color:var(--jb)}
+.theme-jc .pull.ready .num{color:var(--jb)}
 </style>
 </head>
 <body>
 <header>
   <div class="brand">
-    <h1><span id="appName">bite with me!</span><small id="dayLabel">&nbsp;</small></h1>
+    <h1><span id="appName">Bite with <span class="me">me!</span></span><small id="dayLabel">&nbsp;</small></h1>
     <button id="badge" type="button" aria-label="뿅" ontouchstart=""><img alt="" src="badge-male.png"></button>
   </div>
 </header>
@@ -276,6 +309,9 @@ table.hist th:first-child,table.hist td:first-child{text-align:left}
       <div class="field"><label for="f_tp">목표 단백질</label><input id="f_tp" type="text" inputmode="numeric" class="sel"><span class="unit">g</span></div>
       <button class="btn" id="saveProfile">저장</button>
 
+      <div class="sec">테마</div>
+      <div class="field"><label for="f_theme">테마</label><select id="f_theme"><option value="cg">청녹</option><option value="jc">주청</option></select></div>
+
       <div class="sec">AI (Google Gemini)</div>
       <div class="field"><label for="f_key">API 키</label><input id="f_key" type="password" placeholder="AIza…" autocomplete="off" class="sel"></div>
       <div class="field"><label for="f_model">모델</label><input id="f_model" type="text" placeholder="gemini-flash-latest" class="sel"></div>
@@ -284,8 +320,7 @@ table.hist th:first-child,table.hist td:first-child{text-align:left}
 
       <div class="sec">걸음수 자동 가져오기</div>
       <p class="hint">아이폰 단축어가 걸음수를 아래 주소로 보내면, 앱을 열 때·돌아올 때·켜져 있는 동안 1시간마다 가져와 활동 칼로리를 계산합니다. 하루는 새벽 4시 기준이에요. 단축어는 "오늘 4시 이후 걸음_어제 4시~오늘 4시 걸음" 두 숫자를 밑줄(_)로 이어 보내면 되고, 예전처럼 숫자 하나(오늘 0시 이후 누적)만 보내도 됩니다. 보낸 값은 12시간 보관돼요.</p>
-      <div class="code" id="stepUrl"></div>
-      <div class="row2"><button class="btn ghost" id="copyStepUrl">주소 복사</button><button class="btn ghost" id="syncNow">지금 가져오기</button></div>
+      <div class="urlbox"><span id="stepUrl"></span><button type="button" id="copyStepUrl" aria-label="주소 복사"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M15 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h3"/></svg></button></div>
       <p class="hint" id="syncInfo"></p>
 
       <div class="sec">토큰 사용량</div>
@@ -307,8 +342,8 @@ table.hist th:first-child,table.hist td:first-child{text-align:left}
 'use strict';
 /* ============ 저장소 ============ */
 const LS = 'dietnote.v1';
-const APP_NAME = 'bite with me!';
-const APP_VERSION = 'v1.4.1';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
+const APP_NAME = 'Bite with me!';
+const APP_VERSION = 'v1.5.0';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
 const DEFAULT_MODEL = 'gemini-flash-latest';
 const KCAL_PER_KG = 7700;
 const NEW_DAY_HOUR = 4;               // 이 시각 이전은 전날로 취급
@@ -828,6 +863,8 @@ function recordProblem(r){
 }
 function applyActions(actions){
   const recs=[], notes=[]; let touched=false;
+  // "고쳐줘" = 기존 항목 undo + 고친 항목 추가. undo를 먼저 처리해야 같은 이름의 새 항목을 지우지 않음
+  actions = [...actions].sort((a,b)=>(b.type==='undo')-(a.type==='undo'));
   for (const a of actions){
     const t=Date.now();
     switch(a.type){
@@ -1146,7 +1183,8 @@ async function badgeSound(){ await audioReady(); const d=S.cur&&S.days[S.cur]; c
   else sweep(500,1800,0.14,0.02); }                                   // 뾰잉
 function renderBadge(){ const b=$('#badge'), sx=S.profile.sex;
   if (sx!=='male' && sx!=='female') { b.classList.remove('on'); return; }
-  const src = sx==='female' ? 'badge-female.png' : 'badge-male.png';
+  const jc = S.settings.theme==='jc';
+  const src = (sx==='female' ? 'badge-female' : 'badge-male') + (jc ? '-jc' : '') + '.png';
   const img=b.querySelector('img'); if (!img.src.endsWith(src)) img.src=src; b.classList.add('on'); }
 $('#badge').addEventListener('click', ()=>{ badgeSound().catch(()=>{}); });
 document.addEventListener('visibilitychange', ()=>{ if (document.hidden) audioRelease(); });
@@ -1160,14 +1198,16 @@ function renderSummary(){
   const s=summarize(d);
   $('#dayLabel').textContent = dayTitle(d.id);
   const pct = s.tk? Math.min(100, s.intake/s.tk*100) : 0, ppct = s.tp? Math.min(100, s.protein/s.tp*100):0;
-  const over = s.remain<0, pDone = s.protRemain<=0;
+  const over = s.remain<0, pOver = s.protRemain<0;    // 감량·증량 구분 없이 같은 표시
+  // 삼각형: 막대가 찬 끝(지금 위치)을 따라감. 0%면 왼쪽 끝, 100%면 오른쪽 끝에 맞춤
+  const tri = v => `<b class="tri" style="left:${v}%;transform:translateX(-${v}%)"></b>`;
   el.innerHTML = `<div class="tiles num">
     <div class="tile ${over?'over':''}"><div class="lab">${over?'초과 칼로리':'남은 칼로리'}</div>
-      <div class="big">${N(Math.abs(s.remain))}<small>kcal</small></div>
-      <div class="sub">${N(s.intake)} / ${N(s.tk)} 섭취</div><div class="tbar"><i style="width:${pct}%"></i></div></div>
-    <div class="tile"><div class="lab">${pDone?'단백질':'남은 단백질'}</div>
-      <div class="big">${pDone?'달성':N(s.protRemain)}${pDone?'':'<small>g</small>'}</div>
-      <div class="sub">${N(s.protein)} / ${N(s.tp)} 섭취</div><div class="tbar p"><i style="width:${ppct}%"></i></div></div>
+      <div class="big">${over?'+':''}${N(Math.abs(s.remain))}<small>kcal</small></div>
+      <div class="sub">${N(s.intake)} / ${N(s.tk)} 섭취</div><div class="tb"><div class="tbar"><i style="width:${pct}%"></i></div>${tri(pct)}</div></div>
+    <div class="tile p ${pOver?'over':''}"><div class="lab">${pOver?'초과 단백질':'남은 단백질'}</div>
+      <div class="big">${pOver?'+':''}${N(Math.abs(s.protRemain))}<small>g</small></div>
+      <div class="sub">${N(s.protein)} / ${N(s.tp)} 섭취</div><div class="tb"><div class="tbar p"><i style="width:${ppct}%"></i></div>${tri(ppct)}</div></div>
   </div>`;
 }
 function renderChat(){
@@ -1260,7 +1300,7 @@ function renderDaySheet(){
     </div>
     <div class="sec">소모 내역</div>
     <div class="list-item"><div class="grow">기초대사량<small>몸무게 ${N(s.weight,1)}kg 기준</small></div><span class="num">${N(s.bmr)} kcal</span></div>
-    <div class="list-item"><div class="grow">걸음 ${N(s.steps)}보<small>${S.steps.length? '마지막 갱신 '+hm(S.steps[S.steps.length-1].t):'아직 걸음 데이터 없음'}</small></div><span class="num">${N(s.stepKcal)} kcal</span></div>`;
+    <div class="list-item pull" id="stepRow"><div class="grow">걸음 ${N(s.steps)}보<small>${S.steps.length? '마지막 갱신 '+hm(S.steps[S.steps.length-1].t):'아직 걸음 데이터 없음'}</small></div><span class="num">${N(s.stepKcal)} kcal</span></div>`;
   h += d.exercises.map(x=>`<div class="list-item"><div class="grow">${esc(x.name)}<small>${hm(x.t)} ${esc(x.amount||'')}</small></div><span class="num">${N(x.kcal)} kcal</span>${del('e',x.id)}</div>`).join('');
   h += `<div class="sec">섭취 내역 · 탄 ${N(s.carb,1)} / 단 ${N(s.protein,1)} / 지 ${N(s.fat,1)} g</div>`;
   h += d.foods.length ? d.foods.map(x=>`<div class="list-item"><div class="grow">${esc(x.name)} <span style="color:var(--sub)">${esc(x.amount||'')}</span><small>${hm(x.t)} · 탄${N(x.carb,1)} 단${N(x.protein,1)} 지${N(x.fat,1)}g</small></div><span class="num">${N(x.kcal)} kcal</span>${del('f',x.id)}</div>`).join('') : '<p class="empty">아직 먹은 기록이 없어요.</p>';
@@ -1274,15 +1314,51 @@ function renderDaySheet(){
     ids.map(i=>{ const x=S.days[i], z=summarize(x); return `<tr><td>${i.slice(5).replace('-','/')}</td><td>${N(z.intake)}</td><td>${N(z.burn)}</td><td class="${z.surplus>0?'pos':'neg'}">${sgn(z.surplus)}</td><td>${x.weightAM||'-'}</td></tr>`; }).join('') + `</table>`;
   b.innerHTML=h;
   b.querySelectorAll('[data-note]').forEach(btn=>btn.addEventListener('click',()=>{
-    const n=removeNote(btn.dataset.note); if(n){ toast(`메모 "${n.text}" 삭제됨`); save(); renderDaySheet(); }
+    const n=removeNote(btn.dataset.note); if(n){ logDelete('n', `'${n.text}' 메모`); render(); renderDaySheet(); }
   }));
   b.querySelectorAll('[data-morning]').forEach(btn=>btn.addEventListener('click',()=>{
-    clearMorning(d); save(); toast('아침 측정을 지웠어요'); render(); renderDaySheet();
+    const w=[d.weightAM?d.weightAM+'kg':'', d.bodyFat?d.bodyFat+'%':''].filter(Boolean).join(' · ');
+    clearMorning(d); logDelete('m', `아침 측정(${w})`); render(); renderDaySheet();
   }));
   b.querySelectorAll('[data-del]').forEach(btn=>btn.addEventListener('click',()=>{
     const [k,id]=btn.dataset.del.split(':'); const arr = k==='f'?d.foods:d.exercises; const i=arr.findIndex(x=>x.id===id);
-    if(i>=0){ const x=arr.splice(i,1)[0]; toast(`"${x.name}" 삭제됨`); render(); renderDaySheet(); }
+    if(i>=0){ const x=arr.splice(i,1)[0]; logDelete(k, [x.name, x.amount].filter(Boolean).join(' ')); render(); renderDaySheet(); }
   }));
+  const sr=b.querySelector('#stepRow'); if (sr) pullable(sr, pullSteps);
+}
+/* 기록 화면에서 ×로 지우면 대화에 AI 말풍선으로 남김 → 다음 질문 때 대화 기록과 함께 AI에 넘어가 혼선이 없음
+   바로 앞 말풍선이 방금 만든 삭제 말풍선이면 새로 만들지 않고 합치고, 숫자는 늘 지금 상태로 다시 씀 */
+function logDelete(kind, label){
+  const last=S.chat[S.chat.length-1];
+  const m = last && last.delMsg ? last : null;
+  const items = m ? m.delItems : [];
+  items.push({k:kind, label});
+  const d=S.cur&&S.days[S.cur], s=d?summarize(d):null;
+  const names = items.map(x=>x.label).join(', ');
+  const has = k => items.some(x=>x.k===k);
+  const nums=[];
+  if (s && has('f')) nums.push(`섭취 ${N(s.intake)}kcal`);
+  if (s && has('e')) nums.push(`총소모 ${N(s.burn)}kcal`);
+  if (s && (has('f')||has('e'))) nums.push(s.remain<0 ? `초과 칼로리 ${N(-s.remain)}kcal` : `남은 칼로리 ${N(s.remain)}kcal`);
+  if (s && has('f')) nums.push(s.protRemain<0 ? `초과 단백질 ${N(-s.protRemain)}g` : `남은 단백질 ${N(s.protRemain)}g`);
+  let text = `${names} 지웠어요.`;
+  if (nums.length) text += `\n지금 ${nums.join(', ')}이에요.`;
+  if (has('m')) text += `\n다음 측정을 오늘 최초 측정으로 받아요.`;
+  if (m) { m.text=text; m.t=Date.now(); save(); renderChat(); }
+  else addMsg('bot', text, {delMsg:true, delItems:items});
+}
+// 왼쪽으로 당기면 실행 (기록 화면 걸음 줄): 손가락을 따라 밀리고, 충분히 당겼다 놓으면 실행
+function pullable(el, run){
+  const inner=el.querySelector('.grow').parentNode; let sx=0, sy=0, dx=0, on=false, lock=null;
+  el.addEventListener('touchstart', e=>{ if(e.touches.length!==1) return; sx=e.touches[0].clientX; sy=e.touches[0].clientY; dx=0; on=true; lock=null; el.style.transition='none'; }, {passive:true});
+  el.addEventListener('touchmove', e=>{ if(!on) return; const t=e.touches[0]; const x=t.clientX-sx, y=t.clientY-sy;
+    if(!lock){ if(Math.abs(x)<8&&Math.abs(y)<8) return; lock = (x<0 && Math.abs(x)>Math.abs(y)) ? 'h' : 'v'; }
+    if(lock!=='h') return; e.preventDefault(); e.stopPropagation(); dx=Math.max(-90, Math.min(0,x)); el.style.transform=`translateX(${dx}px)`;
+    el.classList.toggle('ready', dx<-56); }, {passive:false});
+  const end=()=>{ if(!on) return; on=false; const go = lock==='h' && dx<-56;
+    el.style.transition='transform .25s cubic-bezier(.2,.8,.2,1)'; el.style.transform=''; el.classList.remove('ready');
+    if (go) { tok().catch(()=>{}); run(); } };
+  el.addEventListener('touchend', end); el.addEventListener('touchcancel', end);
 }
 /* 기록 화면 스와이프: 메인 어디서든 왼쪽으로 밀면 열림, 기록 화면에서 오른쪽으로 밀면 닫힘. 손가락을 따라 움직임 */
 const panel=$('#dayPanel');
@@ -1334,7 +1410,11 @@ function fillSettings(){
   const st=stepStatus(); $('#syncInfo').textContent = st? `마지막 걸음 데이터: ${st.when} 받음 · 오늘 ${N(st.count)}보` : '아직 받은 걸음 데이터가 없어요.';
   $('#usage').innerHTML = usageHTML();
   $('#appVer').textContent = APP_VERSION;
+  $('#f_theme').value = S.settings.theme || 'cg';
 }
+// 테마: 청녹(원래) / 주청(하늘·주황). 고르면 바로 바뀜
+function applyTheme(){ document.body.classList.toggle('theme-jc', S.settings.theme==='jc'); renderBadge(); }
+$('#f_theme').addEventListener('change', e=>{ S.settings.theme=e.target.value; save(); applyTheme(); });
 $('#btnSettings').addEventListener('click', ()=>{ fillSettings(); resetArm=false; $('#resetAll').textContent='전체 초기화'; $('#resetAll').classList.remove('armed'); openSheet('#setSheet'); });
 $('#saveProfile').addEventListener('click', ()=>{
   const v=id=>$(id).value.trim();
@@ -1347,7 +1427,7 @@ $('#saveProfile').addEventListener('click', ()=>{
   if (!was && profileReady()) { const d=ensureDay(); addMsg('bot', `설정 완료! 추정 기초대사량 ${N(d.bmr)} kcal. 이제 먹은 음식과 운동을 적어주세요.`); }
   render(); toast(ch.length?'저장했어요':'변경 사항이 없어요'); closeSheets();
 });
-function applyAppName(){ $('#appName').textContent=APP_NAME; document.title=APP_NAME; }   // 이름 설정은 없앴으므로 항상 고정 이름
+function applyAppName(){ $('#appName').innerHTML='Bite with <span class="me">me!</span>'; document.title=APP_NAME; }   // 이름 설정은 없앴으므로 항상 고정 이름
 // 설정 칸을 누르면 기존 값 전체 선택 → 바로 입력하면 덮어쓰기
 document.querySelectorAll('input.sel').forEach(el=>{
   const selAll=()=>{ try{ el.setSelectionRange(0, el.value.length); }catch(_){ el.select(); } };
@@ -1357,12 +1437,15 @@ document.querySelectorAll('input.sel').forEach(el=>{
 });
 $('#saveAI').addEventListener('click', ()=>{ S.settings.apiKey=$('#f_key').value.trim(); S.settings.model=$('#f_model').value.trim()||DEFAULT_MODEL; save(); toast('AI 설정을 저장했어요'); });
 function stepUrl(){ return `https://ntfy.sh/${S.settings.stepTopic}/publish?message=`; }
-$('#copyStepUrl').addEventListener('click', async ()=>{ try{ await navigator.clipboard.writeText(stepUrl()); toast('복사했어요'); }catch(e){ toast('길게 눌러 직접 복사해 주세요'); } });
+const COPY_SVG = $('#copyStepUrl').innerHTML, CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17 19 7"/></svg>';
+$('#copyStepUrl').addEventListener('click', async ()=>{ const b=$('#copyStepUrl');
+  try{ await navigator.clipboard.writeText(stepUrl()); b.innerHTML=CHECK_SVG; clearTimeout(b._t); b._t=setTimeout(()=>{ b.innerHTML=COPY_SVG; }, 1200); }
+  catch(e){ toast('주소를 복사하지 못했어요'); } });
 // 지금 가져오기: 새로 받았든 이미 자동으로 받아 뒀든, 최신 걸음과 그 값을 받은 시각을 보여줌
-$('#syncNow').addEventListener('click', async ()=>{ const n=await syncSteps(true); fillSettings();
+async function pullSteps(){ const n=await syncSteps(true);
   if (n<0) { toast('걸음 서버에 연결하지 못했어요'); return; }
-  const st=stepStatus();
-  toast(st ? `최신 걸음 ${N(st.count)}보 · ${st.when} 받음` : '아직 받은 걸음이 없어요'); });
+  const st=stepStatus(); if (panelOpen) renderDaySheet();
+  toast(st ? `최신 걸음 ${N(st.count)}보 · ${st.when} 받음` : '아직 받은 걸음이 없어요'); }
 // 최신 걸음 상태: 오늘(새벽 4시 기준) 걸음수와 마지막으로 받은 시각
 function stepStatus(){ const last=S.steps[S.steps.length-1]; if(!last) return null;
   const d=S.cur&&S.days[S.cur]; const count = d ? summarize(d).steps : last.count;
@@ -1600,7 +1683,7 @@ function closeViewer(){ const v=$('#viewer'), bg=v.querySelector('.vbg'), im=$('
   // 단축어가 URL로 걸음수를 넘겨줄 때: ?steps=8123
   const qs=new URLSearchParams(location.search);
   if (qs.has('steps')) { ingestStepMessage(qs.get('steps'), Date.now(), uid()); history.replaceState(null,'',location.pathname); }
-  applyAppName();
+  applyAppName(); applyTheme();
   if (!S.chat.length) intro();
   ensureDay(); render(); checkWeeklyReport();
   syncSteps();
