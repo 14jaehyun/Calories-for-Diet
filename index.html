@@ -225,7 +225,6 @@ table.hist th:first-child,table.hist td:first-child{text-align:left}
 body.theme-jc{--jb:#1F6F9E;--jb2:#2477A8;--jc:#E8573A;--jcl:#F4A894}
 .theme-jc header h1{color:var(--jb);font-weight:700}.theme-jc header h1 .me{color:var(--jc)}
 .theme-jc header h1 small{color:var(--jc);font-weight:700}
-.theme-jc #badge img{filter:drop-shadow(1.6px 2.7px 0 #E8573A)}
 /* 현황 카드: 진한 파랑 + 오른쪽 아래 코랄 겹침 */
 .theme-jc #summary{background:var(--jb);box-shadow:2.5px 2.5px 0 var(--jc)}
 .theme-jc .tile .lab,.theme-jc .tile .sub,.theme-jc .tile .big,.theme-jc #summary .s-label{color:#fff;font-weight:700}
@@ -355,7 +354,7 @@ body.theme-jc{--jb:#1F6F9E;--jb2:#2477A8;--jc:#E8573A;--jcl:#F4A894}
 /* ============ 저장소 ============ */
 const LS = 'dietnote.v1';
 const APP_NAME = 'Bite with me!';
-const APP_VERSION = 'v1.5.1';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
+const APP_VERSION = 'v1.5.2';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
 const DEFAULT_MODEL = 'gemini-flash-latest';
 const KCAL_PER_KG = 7700;
 const NEW_DAY_HOUR = 4;               // 이 시각 이전은 전날로 취급
@@ -1196,7 +1195,7 @@ async function badgeSound(){ await audioReady(); const d=S.cur&&S.days[S.cur]; c
 function renderBadge(){ const b=$('#badge'), sx=S.profile.sex;
   if (sx!=='male' && sx!=='female') { b.classList.remove('on'); return; }
   const jc = S.settings.theme==='jc';
-  const src = (sx==='female' ? 'badge-female' : 'badge-male') + (jc ? '-jc' : '') + '.png';
+  const src = (sx==='female' ? 'badge-female' : 'badge-male') + (jc ? '-jc' : '') + '.png' + (jc ? '?v=151' : '');
   const img=b.querySelector('img'); if (!img.src.endsWith(src)) img.src=src; b.classList.add('on'); }
 $('#badge').addEventListener('click', ()=>{ badgeSound().catch(()=>{}); });
 document.addEventListener('visibilitychange', ()=>{ if (document.hidden) audioRelease(); });
