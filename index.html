@@ -53,7 +53,7 @@ header h1 small{display:block;font-size:12px;font-weight:450;color:var(--sub);ma
 .tbar.p i{background:var(--mint-bar2)}
 /* 막대 아래 삼각형: 못 채웠으면 노란색으로 지금 위치를 따라감, 넘기면 막대 끝에서 막대보다 살짝 연한 색 */
 .tb{position:relative;padding-bottom:7px}
-.tri{position:absolute;top:10px;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:6px solid var(--tri);transition:left .3s,transform .3s}
+.tri{position:absolute;top:10px;transform:translateX(-50%);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:6px solid var(--tri);transition:left .3s,transform .3s}
 :root{--tri:#FFC000;--tri-k:#6CC39B;--tri-p:#8FD1B3}
 .tile.over .tri{--tri:var(--tri-k)}.tile.p.over .tri{--tri:var(--tri-p)}
 .pos{color:var(--warm)!important}.neg{color:var(--blue)!important}
@@ -221,29 +221,41 @@ table.hist th:first-child,table.hist td:first-child{text-align:left}
 #viewer{position:fixed;inset:0;z-index:45;touch-action:none;-webkit-user-select:none;user-select:none}
 #viewer .vbg{position:absolute;inset:0;background:#000}
 #vimg{position:absolute;left:50%;top:50%;max-width:100%;max-height:100%;transform-origin:center center;will-change:transform;-webkit-user-drag:none}
-/* ===== 주청 테마 (하늘·주황, v1.5.0) — 청녹이 기본 ===== */
-body.theme-jc{--jb:#1F6F9E;--jc:#E8573A;--jcl:#F4A894}
-.theme-jc header h1{color:var(--jb)}.theme-jc header h1 .me{color:var(--jc)}
-.theme-jc header h1 small{color:var(--jc)}
-.theme-jc #badge img{filter:drop-shadow(1.5px 2.7px 0 #E8573A)}
+/* ===== 주청 테마 (하늘·주황, v1.5.1 PPT 기준) — 청녹이 기본 ===== */
+body.theme-jc{--jb:#1F6F9E;--jb2:#2477A8;--jc:#E8573A;--jcl:#F4A894}
+.theme-jc header h1{color:var(--jb);font-weight:700}.theme-jc header h1 .me{color:var(--jc)}
+.theme-jc header h1 small{color:var(--jc);font-weight:700}
+.theme-jc #badge img{filter:drop-shadow(1.6px 2.7px 0 #E8573A)}
+/* 현황 카드: 진한 파랑 + 오른쪽 아래 코랄 겹침 */
 .theme-jc #summary{background:var(--jb);box-shadow:2.5px 2.5px 0 var(--jc)}
-.theme-jc .tile .lab,.theme-jc .tile .sub,.theme-jc .tile .big,.theme-jc .tile .big small,.theme-jc #summary .s-label{color:#fff}
-.theme-jc .tile .lab{font-weight:600}.theme-jc .tile .sub{font-weight:600}
-.theme-jc .tbar{background:#fff}.theme-jc .tbar i,.theme-jc .tbar.p i{background:var(--jc)}
-.theme-jc{--tri-k:#FFC000;--tri-p:#FFC000}
-.theme-jc .user .bubble{background:#F0F0F0;color:var(--jc)}
-.theme-jc .bot .bubble{background:#F1F5F8;color:var(--jc)}
-.theme-jc .rec{border-top-color:var(--jcl)}.theme-jc .rec-m,.theme-jc .rec em{color:var(--jc)}
-.theme-jc .tag{color:var(--jc);border-color:var(--jcl)}
-.theme-jc #send{background:#F2F2F2;color:var(--jb)}.theme-jc #send:disabled{background:#F2F2F2;color:#9fb8c9}
-.theme-jc #plus{color:var(--jb)}.theme-jc #input{color:var(--jc)}.theme-jc #input::placeholder{color:var(--jb);opacity:.85}
-.theme-jc .icon-btn{color:var(--jb)}
-.theme-jc .panel-h h2,.theme-jc .sheet-h h2,.theme-jc .sec{color:var(--jb)}
-.theme-jc .list-item,.theme-jc .list-item small,.theme-jc .list-item span,.theme-jc .del,.theme-jc table.hist th,.theme-jc table.hist td,.theme-jc .empty,.theme-jc .d-grid,.theme-jc .d-grid small,.theme-jc .s-label{color:var(--jc)}
-.theme-jc .pos,.theme-jc .neg{color:var(--jc)!important}
-.theme-jc .field label,.theme-jc .field input,.theme-jc .field select,.theme-jc .field .unit,.theme-jc .hint,.theme-jc .ver,.theme-jc .usage td,.theme-jc .usage th,.theme-jc .ureset,.theme-jc .urlbox span{color:var(--jc)}
-.theme-jc .btn{background:var(--jb)}.theme-jc .btn.ghost,.theme-jc .btn.danger{background:var(--soft);color:var(--jb)}
-.theme-jc .pull.ready .num{color:var(--jb)}
+.theme-jc .tile .lab,.theme-jc .tile .sub,.theme-jc .tile .big,.theme-jc #summary .s-label{color:#fff;font-weight:700}
+.theme-jc .tile .big small{color:#fff;font-weight:400}
+.theme-jc .tbar,.theme-jc .tbar i,.theme-jc .tbar.p i{background:var(--jc)}
+.theme-jc .tbar{height:6px}
+.theme-jc .tri{border-left-width:7px;border-right-width:7px;top:11px}
+.theme-jc{--tri:#FFFF00;--tri-k:#FFFF00;--tri-p:#FFFF00}
+/* 대화 */
+.theme-jc .user .bubble,.theme-jc .bot .bubble{background:#F2F2F2;color:var(--jb2)}
+.theme-jc .rec{border-top-color:#F6BCB0}
+.theme-jc .rec-row,.theme-jc .rec-m,.theme-jc .rec em{color:var(--jc)}
+.theme-jc .tag{color:var(--jc);border-color:var(--jcl);background:#F1F5F8}
+.theme-jc #composer{border-top-color:#EBF0F3}
+.theme-jc #field{background:#F2F2F2;border-color:var(--jc)}.theme-jc #field:focus-within{background:#F2F2F2;border-color:var(--jc)}
+.theme-jc #plus{color:var(--jb)}.theme-jc #input{color:var(--jb2)}.theme-jc #input::placeholder{color:#A6A6A6}
+.theme-jc #send{background:#F2F2F2;color:var(--jb)}.theme-jc #send:disabled{background:#F2F2F2;color:#A6A6A6}
+/* 기록 화면 */
+.theme-jc .panel-h h2{color:var(--jb)}.theme-jc .panel-h .icon-btn{color:var(--jc)}
+.theme-jc .sec{color:var(--jc);font-weight:700}
+.theme-jc .list-item,.theme-jc .list-item small,.theme-jc .list-item span,.theme-jc .del,.theme-jc table.hist th,.theme-jc table.hist td,.theme-jc .empty,.theme-jc .d-grid,.theme-jc .d-grid small,.theme-jc .s-label{color:var(--jb)}
+.theme-jc .list-item span[style]{color:var(--jb)!important}
+.theme-jc .pos,.theme-jc .neg{color:var(--jb)!important}
+.theme-jc .pull.ready .num{color:var(--jc)}
+/* 설정 */
+.theme-jc .sheet-h h2{color:var(--jb2)}.theme-jc .sheet-h .icon-btn{color:var(--jb)}
+.theme-jc .field label,.theme-jc .field input,.theme-jc .field select,.theme-jc .field .unit,.theme-jc .hint,.theme-jc .ver,.theme-jc .usage td,.theme-jc .usage th,.theme-jc .ureset,.theme-jc .ureset button,.theme-jc .urlbox span,.theme-jc .urlbox button{color:var(--jb)}
+.theme-jc .field select{font-weight:700}
+.theme-jc .urlbox{background:#fff;border-color:#BFBFBF}
+.theme-jc .btn{background:var(--jb2);box-shadow:inset 0 0 0 1px var(--jb)}.theme-jc .btn.ghost,.theme-jc .btn.danger{background:var(--soft);color:var(--jb);box-shadow:none}
 </style>
 </head>
 <body>
@@ -343,7 +355,7 @@ body.theme-jc{--jb:#1F6F9E;--jc:#E8573A;--jcl:#F4A894}
 /* ============ 저장소 ============ */
 const LS = 'dietnote.v1';
 const APP_NAME = 'Bite with me!';
-const APP_VERSION = 'v1.5.0';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
+const APP_VERSION = 'v1.5.1';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
 const DEFAULT_MODEL = 'gemini-flash-latest';
 const KCAL_PER_KG = 7700;
 const NEW_DAY_HOUR = 4;               // 이 시각 이전은 전날로 취급
@@ -1199,8 +1211,8 @@ function renderSummary(){
   $('#dayLabel').textContent = dayTitle(d.id);
   const pct = s.tk? Math.min(100, s.intake/s.tk*100) : 0, ppct = s.tp? Math.min(100, s.protein/s.tp*100):0;
   const over = s.remain<0, pOver = s.protRemain<0;    // 감량·증량 구분 없이 같은 표시
-  // 삼각형: 막대가 찬 끝(지금 위치)을 따라감. 0%면 왼쪽 끝, 100%면 오른쪽 끝에 맞춤
-  const tri = v => `<b class="tri" style="left:${v}%;transform:translateX(-${v}%)"></b>`;
+  // 삼각형: 꼭짓점(가운데)이 막대가 찬 끝(지금 위치)에 오게. 넘겨서 꽉 차면 막대 오른쪽 끝에 딱 맞음
+  const tri = v => `<b class="tri" style="left:${v}%"></b>`;
   el.innerHTML = `<div class="tiles num">
     <div class="tile ${over?'over':''}"><div class="lab">${over?'초과 칼로리':'남은 칼로리'}</div>
       <div class="big">${over?'+':''}${N(Math.abs(s.remain))}<small>kcal</small></div>
