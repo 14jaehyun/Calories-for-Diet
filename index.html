@@ -376,7 +376,7 @@ body.theme-jc{--jb:#1F6F9E;--jb2:#2477A8;--jc:#E8573A;--jcl:#F4A894}
 /* ============ 저장소 ============ */
 const LS = 'dietnote.v1';
 const APP_NAME = 'Bite with me!';
-const APP_VERSION = 'v1.5.5';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
+const APP_VERSION = 'v1.5.6';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
 const DEFAULT_MODEL = 'gemini-flash-latest';
 const KCAL_PER_KG = 7700;
 const NEW_DAY_HOUR = 4;               // 이 시각 이전은 전날로 취급
@@ -1447,8 +1447,13 @@ function closePanel(){ panelX(innerWidth, true); panelOpen=false;
 (function swipe(){
   let sx=0, sy=0, st=0, lock=null, active=false;   // lock: 'h' 가로로 미는 중, 'v' 세로 스크롤
   const sheetOpen = () => !!document.querySelector('#setSheet.open') || !$('#crop').hidden || !$('#viewer').hidden;
+  // 최근 기록 표(좌우 스크롤) 위에서는: 표가 옆으로 밀려 있거나, 방금(0.5초 안) 움직였으면 이번 밀기는 표 스크롤에만 씀
+  // → 표를 맨 앞으로 되돌린 같은 손동작이나 관성으로 화면이 닫히지 않고, 손을 뗐다가 새로 밀어야 닫힘
+  let histMovedAt=0;
+  document.addEventListener('scroll', e=>{ if (e.target && e.target.classList && e.target.classList.contains('hist-wrap')) histMovedAt=Date.now(); }, true);
+  const onHist = t => { const w=t && t.closest && t.closest('.hist-wrap'); return w && (w.scrollLeft>2 || Date.now()-histMovedAt<500); };
   document.addEventListener('touchstart', e=>{
-    if (e.touches.length!==1 || sheetOpen()) { active=false; return; }
+    if (e.touches.length!==1 || sheetOpen() || onHist(e.target)) { active=false; return; }
     const t=e.touches[0]; sx=t.clientX; sy=t.clientY; st=Date.now(); lock=null; active=true;
   }, {passive:true});
   document.addEventListener('touchmove', e=>{
