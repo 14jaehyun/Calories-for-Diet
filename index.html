@@ -57,11 +57,19 @@ header h1 small{display:block;font-size:12px;font-weight:450;color:var(--sub);ma
 :root{--tri:#FFC000;--tri-k:#6CC39B;--tri-p:#8FD1B3}
 .tile.over .tri{--tri:var(--tri-k)}.tile.p.over .tri{--tri:var(--tri-p)}
 .pos{color:var(--warm)!important}.neg{color:var(--blue)!important}
-/* 브리핑 상단 4칸 */
-.d-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:4px}
-.d-grid div{background:var(--soft2);border:1px solid var(--line);border-radius:12px;padding:9px 11px}
-.d-grid b{display:block;font-size:18px;font-weight:650;margin-top:2px}
-.d-grid small{font-size:12px;font-weight:400;color:var(--sub)}
+/* 기록 화면 오늘 요약 3칸: 작은 쪽 + 칼로리 적자/흑자 = 큰 쪽.
+   적자면 윗줄 긴 소모 칸, 아랫줄 섭취 + 적자 / 흑자면 윗줄 소모 + 흑자, 아랫줄 긴 섭취 칸.
+   한 줄에 둘이 있으면 실제 숫자 비율로 폭을 나누되, 글자가 들어갈 최소 폭(120px)은 지킴 */
+.d-sum{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.d-row{display:flex;gap:8px}
+.d-box{position:relative;min-width:120px;border-radius:12px;padding:6px 11px 5px;background:#F2F2F2;border:1px solid #D9D9D9}
+.d-box .s-label{display:block}
+.d-box b{display:block;font-size:18px;font-weight:650;margin-top:1px;white-space:nowrap}
+.d-box small{font-size:12px;font-weight:400}
+.d-box .s-label,.d-box small{color:inherit}            /* 칸 안의 글자는 칸 색을 따라감 */
+.d-box.in{color:#4F6D8A}
+.d-box.diff{background:#4F6D8A;border-color:#4F6D8A;color:#fff}
+.d-exp{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:16px;font-weight:700;color:#4F6D8A;white-space:nowrap}
 
 /* chat */
 #chat{flex:1;overflow-y:auto;padding:8px 12px 12px;-webkit-overflow-scrolling:touch}
@@ -93,6 +101,11 @@ header h1 small{display:block;font-size:12px;font-weight:450;color:var(--sub);ma
 .typing span{display:inline-block;width:6px;height:6px;margin:0 2px;border-radius:50%;background:var(--blue2);animation:b 1s infinite}
 .typing span:nth-child(2){animation-delay:.15s}.typing span:nth-child(3){animation-delay:.3s}
 @keyframes b{0%,80%,100%{opacity:.25}40%{opacity:1}}
+/* 검색 출처: 검색해서 답한 경우에만 답 아래에 작게 */
+.src{margin-top:8px;padding-top:7px;border-top:1px solid #d9e2ea;font-size:11.5px;color:var(--sub);line-height:1.6;white-space:normal}
+.src a{color:var(--blue);text-decoration:none}
+.src a+a:before{content:" · ";color:var(--faint)}
+.gsep{margin-top:6px}
 /* 주간 리포트 */
 .bot .bubble.wide{max-width:92%}
 .rep{background:#1B2430;border-radius:14px;padding:12px 12px 10px;margin:2px 0 10px;color:#fff;white-space:normal}
@@ -158,9 +171,9 @@ body.kb #composer{padding-bottom:8px}   /* 키보드가 올라와 있으면 홈 
 .ver{text-align:center;font-size:11.5px;color:var(--faint);margin:18px 0 0}
 /* 토큰 사용량 (고쉐와 같은 양식) */
 .usage{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:2px;font-variant-numeric:tabular-nums}
-.usage th{font-weight:600;color:var(--faint);text-align:right;padding:4px 2px;border-bottom:1px solid var(--line)}
+.usage th{font-weight:600;color:var(--faint);text-align:right;padding:4px 2px;line-height:18px;border-bottom:1px solid var(--line)}
 .usage th:first-child,.usage td:first-child{text-align:left}
-.usage td{text-align:right;padding:5px 2px;border-bottom:1px solid var(--line)}
+.usage td{text-align:right;padding:5px 2px;line-height:18px;border-bottom:1px solid var(--line)}
 .usage tr.tot td{font-weight:700;border-bottom:none}
 .ureset{display:flex;align-items:center;justify-content:space-between;font-size:12.5px;color:var(--sub);margin-top:6px}
 .ureset button{color:var(--blue);font-weight:600;padding:4px 2px}
@@ -171,7 +184,8 @@ body.kb #composer{padding-bottom:8px}   /* 키보드가 올라와 있으면 홈 
 .pull.ready .num{color:var(--blue)}
 .del{color:var(--faint);width:30px;height:30px;border-radius:8px;display:grid;place-items:center;flex:none}
 .del:active{background:var(--soft)}
-table.hist{width:100%;border-collapse:collapse;font-size:13px}
+.hist-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -16px;padding:0 16px}
+table.hist{width:100%;border-collapse:collapse;font-size:13px;white-space:nowrap}
 table.hist th{font-weight:500;color:var(--sub);font-size:11.5px;text-align:right;padding:6px 4px;border-bottom:1px solid var(--line)}
 table.hist td{text-align:right;padding:7px 4px;border-bottom:1px solid var(--line)}
 table.hist th:first-child,table.hist td:first-child{text-align:left}
@@ -225,6 +239,7 @@ table.hist th:first-child,table.hist td:first-child{text-align:left}
 body.theme-jc{--jb:#1F6F9E;--jb2:#2477A8;--jc:#E8573A;--jcl:#F4A894}
 .theme-jc header h1{color:var(--jb);font-weight:700}.theme-jc header h1 .me{color:var(--jc)}
 .theme-jc header h1 small{color:var(--jc);font-weight:700}
+.theme-jc #badge img{filter:drop-shadow(1.6px 2.7px 0 #E8573A)}   /* 캐릭터 뒤 코랄 오프셋 네모 (내부 그림자 없음) */
 /* 현황 카드: 진한 파랑 + 오른쪽 아래 코랄 겹침 */
 .theme-jc #summary{background:var(--jb);box-shadow:2.5px 2.5px 0 var(--jc)}
 .theme-jc .tile .lab,.theme-jc .tile .sub,.theme-jc .tile .big,.theme-jc #summary .s-label{color:#fff;font-weight:700}
@@ -235,6 +250,7 @@ body.theme-jc{--jb:#1F6F9E;--jb2:#2477A8;--jc:#E8573A;--jcl:#F4A894}
 .theme-jc{--tri:#FFFF00;--tri-k:#FFFF00;--tri-p:#FFFF00}
 /* 대화 */
 .theme-jc .user .bubble,.theme-jc .bot .bubble{background:#F2F2F2;color:var(--jb2)}
+.theme-jc .user .bubble{background:#EAE6E6;color:var(--jb)}
 .theme-jc .rec{border-top-color:#F6BCB0}
 .theme-jc .rec-row,.theme-jc .rec-m,.theme-jc .rec em{color:var(--jc)}
 .theme-jc .tag{color:var(--jc);border-color:var(--jcl);background:#F1F5F8}
@@ -245,15 +261,22 @@ body.theme-jc{--jb:#1F6F9E;--jb2:#2477A8;--jc:#E8573A;--jcl:#F4A894}
 /* 기록 화면 */
 .theme-jc .panel-h h2{color:var(--jb)}.theme-jc .panel-h .icon-btn{color:var(--jc)}
 .theme-jc .sec{color:var(--jc);font-weight:700}
-.theme-jc .list-item,.theme-jc .list-item small,.theme-jc .list-item span,.theme-jc .del,.theme-jc table.hist th,.theme-jc table.hist td,.theme-jc .empty,.theme-jc .d-grid,.theme-jc .d-grid small,.theme-jc .s-label{color:var(--jb)}
+.theme-jc .list-item,.theme-jc .list-item small,.theme-jc .list-item span,.theme-jc .del,.theme-jc table.hist th,.theme-jc table.hist td,.theme-jc .empty,.theme-jc .s-label{color:var(--jb)}
+.theme-jc .d-box{background:#fff;border-color:var(--jb);color:var(--jb)}.theme-jc .d-box .s-label,.theme-jc .d-box small{color:inherit}
+.theme-jc .d-box.in{background:#EAE6E6}
+.theme-jc .d-box.diff{background:var(--jc);border-color:var(--jc);color:#fff}.theme-jc .d-box.diff .s-label,.theme-jc .d-box.diff small{color:#fff}
+.theme-jc .d-box.diff.plus{background:var(--jb);border-color:var(--jb)}
+.theme-jc .d-exp{color:var(--jc)}.theme-jc .d-exp.plus{color:var(--jb)}
+.theme-jc .src{border-top-color:#F6BCB0;color:var(--jb)}.theme-jc .src a{color:var(--jc)}
 .theme-jc .list-item span[style]{color:var(--jb)!important}
 .theme-jc .pos,.theme-jc .neg{color:var(--jb)!important}
 .theme-jc .pull.ready .num{color:var(--jc)}
 /* 설정 */
 .theme-jc .sheet-h h2{color:var(--jb2)}.theme-jc .sheet-h .icon-btn{color:var(--jb)}
 .theme-jc .field label,.theme-jc .field input,.theme-jc .field select,.theme-jc .field .unit,.theme-jc .hint,.theme-jc .ver,.theme-jc .usage td,.theme-jc .usage th,.theme-jc .ureset,.theme-jc .ureset button,.theme-jc .urlbox span,.theme-jc .urlbox button{color:var(--jb)}
-.theme-jc .field select{font-weight:700}
+
 .theme-jc .urlbox{background:#fff;border-color:#BFBFBF}
+.theme-jc .hint{color:#84B0CA}   /* 설명 글만 연한 파랑 (본문 파랑은 그대로) */
 .theme-jc .btn{background:var(--jb2);box-shadow:inset 0 0 0 1px var(--jb)}.theme-jc .btn.ghost,.theme-jc .btn.danger{background:var(--soft);color:var(--jb);box-shadow:none}
 </style>
 </head>
@@ -321,7 +344,7 @@ body.theme-jc{--jb:#1F6F9E;--jb2:#2477A8;--jc:#E8573A;--jcl:#F4A894}
       <button class="btn" id="saveProfile">저장</button>
 
       <div class="sec">테마</div>
-      <div class="field"><label for="f_theme">테마</label><select id="f_theme"><option value="cg">청녹</option><option value="jc">주청</option></select></div>
+      <div class="field"><label for="f_theme">테마제목</label><select id="f_theme"><option value="cg">청녹</option><option value="jc">주청</option></select></div>
 
       <div class="sec">AI (Google Gemini)</div>
       <div class="field"><label for="f_key">API 키</label><input id="f_key" type="password" placeholder="AIza…" autocomplete="off" class="sel"></div>
@@ -330,9 +353,8 @@ body.theme-jc{--jb:#1F6F9E;--jb2:#2477A8;--jc:#E8573A;--jcl:#F4A894}
       <button class="btn ghost" id="saveAI">AI 설정 저장</button>
 
       <div class="sec">걸음수 자동 가져오기</div>
-      <p class="hint">아이폰 단축어가 걸음수를 아래 주소로 보내면, 앱을 열 때·돌아올 때·켜져 있는 동안 1시간마다 가져와 활동 칼로리를 계산합니다. 하루는 새벽 4시 기준이에요. 단축어는 "오늘 4시 이후 걸음_어제 4시~오늘 4시 걸음" 두 숫자를 밑줄(_)로 이어 보내면 되고, 예전처럼 숫자 하나(오늘 0시 이후 누적)만 보내도 됩니다. 보낸 값은 12시간 보관돼요.</p>
+      <p class="hint">아이폰 단축어가 걸음수를 아래 주소로 보내면, 앱을 열 때·돌아올 때·켜져 있는 동안 1시간마다 가져와 활동 칼로리를 계산합니다. 하루는 새벽 4시 기준이에요. 보낸 값은 12시간 보관돼요.</p>
       <div class="urlbox"><span id="stepUrl"></span><button type="button" id="copyStepUrl" aria-label="주소 복사"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M15 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h3"/></svg></button></div>
-      <p class="hint" id="syncInfo"></p>
 
       <div class="sec">토큰 사용량</div>
       <div id="usage"></div>
@@ -354,7 +376,7 @@ body.theme-jc{--jb:#1F6F9E;--jb2:#2477A8;--jc:#E8573A;--jcl:#F4A894}
 /* ============ 저장소 ============ */
 const LS = 'dietnote.v1';
 const APP_NAME = 'Bite with me!';
-const APP_VERSION = 'v1.5.2';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
+const APP_VERSION = 'v1.5.3';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
 const DEFAULT_MODEL = 'gemini-flash-latest';
 const KCAL_PER_KG = 7700;
 const NEW_DAY_HOUR = 4;               // 이 시각 이전은 전날로 취급
@@ -377,6 +399,7 @@ const hm = t => { const d = new Date(t); return `${pad(d.getHours())}:${pad(d.ge
 const N = (v, d=0) => (v==null || isNaN(v)) ? '-' : Number(v).toLocaleString('ko-KR',{maximumFractionDigits:d, minimumFractionDigits:0});
 const sgn = (v, d=0) => (v>0?'+':'') + N(v,d);
 const r1 = v => Math.round(v*10)/10;
+const r2 = v => Math.round(v*100)/100;   // 체중은 소수 둘째 자리까지
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const WD = ['일','월','화','수','목','금','토'];
 const dayTitle = id => { const [y,m,d] = id.split('-').map(Number); const dt = new Date(y,m-1,d); return `${m}월 ${d}일 (${WD[dt.getDay()]})`; };
@@ -478,7 +501,7 @@ function greetNewDay(d, prev){
   let t = `${dayTitle(d.id)} 새 하루를 시작했어요.`;
   if (prev && prev.foods.length+prev.exercises.length>0) {
     const s=summarize(prev);
-    t += `\n어제 결과: 섭취 ${N(s.intake)} · 소모 ${N(s.burn)} kcal → ${s.surplus>=0?'잉여':'결핍'} ${sgn(s.surplus)} kcal (예상 체중 ${sgn(s.expKg,2)} kg)`;
+    t += `\n어제 결과: 섭취 ${N(s.intake)} · 소모 ${N(s.burn)} kcal → ${s.surplus>=0?'칼로리 흑자':'칼로리 적자'} ${sgn(s.surplus)} kcal (예상 체중 ${sgn(s.expKg,2)} kg)`;
   }
   const todays=S.notes.filter(n=>n.date===d.id);
   if (todays.length) t += `\n오늘 일정: ${todays.map(n=>n.text).join(', ')}`;
@@ -495,23 +518,23 @@ function wakeUp(now=Date.now()){
 }
 function goSleep(now=Date.now()){
   const d = ensureDay(now); d.sleepAt = now; const s = summarize(d);
-  return {text:`취침 ${hm(now)} 기록했어요. 오늘 결과는 ${s.surplus>=0?'잉여':'결핍'} ${sgn(s.surplus)} kcal, 예상 체중 변화 ${sgn(s.expKg,2)} kg 입니다. 잘 자요.`};
+  return {text:`취침 ${hm(now)} 기록했어요. 오늘 결과는 ${s.surplus>=0?'칼로리 흑자':'칼로리 적자'} ${sgn(s.surplus)} kcal, 예상 체중 변화 ${sgn(s.expKg,2)} kg 입니다. 잘 자요.`};
 }
 
 /* ============ 기록 동작 ============ */
 function setMorningWeight(kg, at=Date.now()){
-  const d = ensureDay(); kg = r1(kg);
+  const d = ensureDay(); kg = r2(kg);
   d.weighAt = at;                  // 측정 시각 (기록 화면 아침 측정에 표시)
   const prevW = latestWeightBefore(d) || S.profile.weight;
   const p = prevDay(d);
   d.weightAM = kg;
-  d.actualChange = prevW ? r1(kg - prevW) : null;
+  d.actualChange = prevW ? r2(kg - prevW) : null;
   d.prevExpected = p ? Math.round(summarize(p).expKg*100)/100 : null;
   S.profile.weight = kg;
   d.bmr = calcBMR(kg);            // 기상 시 몸무게로 기초대사량 조정
   let t = `공복 몸무게 ${kg} kg 기록했어요.`;
   if (d.actualChange!=null) {
-    t += `\n전일 대비 ${sgn(d.actualChange,1)} kg`;
+    t += `\n전일 대비 ${sgn(d.actualChange,2)} kg`;
     if (d.prevExpected!=null) t += ` (어제 예상 ${sgn(d.prevExpected,2)} kg, 차이 ${sgn(r1((d.actualChange - d.prevExpected)*10)/10,2)} kg)`;
   }
   t += `\n기초대사량을 ${N(d.bmr)} kcal로 조정했어요.`;
@@ -744,6 +767,7 @@ function systemPrompt(){
 - 질문에는 아래 현황 데이터로 계산한 구체적 숫자로 답한다. "지금 라면 먹으면?" 같은 가정은 그 음식 추정치, 먹은 뒤 남는 섭취 칼로리, 오늘 잉여/결핍 변화, 예상 체중 영향(7,700kcal=1kg)을 계산해 알려준다.
 - 소모 칼로리 = 기초대사량 + 걸음 소모 + 운동 소모. 잉여/결핍 = 섭취 − 소모.
 - 의학적 진단이나 극단적 절식 권유는 하지 않는다.
+- 특정 제품·브랜드·식당 메뉴의 영양성분, 최신 정보처럼 확실히 알지 못하는 사실은 Google 검색 도구로 찾아보고 그 결과를 근거로 답한다. 일반적인 음식이나 이미 확실히 아는 내용은 검색하지 않아도 된다. 검색으로 찾은 값을 쓸 때는 reply에 짧게 밝힌다.
 
 [현황 데이터]
 ${JSON.stringify(context())}`;
@@ -774,10 +798,19 @@ async function askGemini(userText, note, modelOverride, img){
   if (!hist.length || hist[hist.length-1].role!=='user') hist.push({role:'user', parts:[{text:userText}]});
   if (note) hist[hist.length-1].parts[0].text += '\n\n[앱 알림] ' + note;
   if (img) hist[hist.length-1].parts.push({inlineData:{mimeType:'image/jpeg', data:img.data}});   // 이번 메시지에 붙인 사진
-  const body = { systemInstruction:{parts:[{text:systemPrompt()}]}, contents:hist,
-    generationConfig:{ responseMimeType:'application/json', responseSchema:SCHEMA, ...GEN } };
-  const raw = await geminiRaw(body, model, 'chat');
-  let j; try { j = JSON.parse(raw.replace(/^```(json)?|```$/g,'')); } catch(e) { return { reply: raw || '응답을 이해하지 못했어요. 다시 말씀해 주세요.', actions:[] }; }
+  // 검색 연결 단계: 0 = 검색 + JSON 양식 강제, 1 = 검색 + 양식은 지시로만, 2 = 검색 없이 (예전 방식)
+  // 모델이 앞 단계를 거절(400)하면 다음 단계로 넘어가고, 그 모델은 이 세션 동안 그 단계부터 씀
+  const meta={}; let raw, lv=searchLevel.get(model)||0;
+  for (;;) {
+    const sys = systemPrompt() + (lv===1 ? JSON_ONLY : '');
+    const gen = lv===1 ? {...GEN} : { responseMimeType:'application/json', responseSchema:SCHEMA, ...GEN };
+    const body = { systemInstruction:{parts:[{text:sys}]}, contents:hist, generationConfig:gen };
+    if (lv<2) body.tools=[{google_search:{}}];
+    try { raw = await geminiRaw(body, model, 'chat', meta); break; }
+    catch(e){ if (e.status===400 && lv<2 && /tool|search|ground|mime|schema|json|support/i.test(e.message)) { lv++; searchLevel.set(model, lv); continue; } throw e; }
+  }
+  let j = parseJSON(raw);
+  if (!j) return { reply: raw || '응답을 이해하지 못했어요. 다시 말씀해 주세요.', actions:[], src:sourcesOf(meta.gm) };
   const arr = v => Array.isArray(v) ? v : [];
   const actions = [
     ...arr(j.foods).map(f=>({...f, type:'food'})),
@@ -785,8 +818,23 @@ async function askGemini(userText, note, modelOverride, img){
     ...arr(j.others),
     ...arr(j.actions)                      // 예전 형식 응답도 허용
   ];
-  return { reply:String(j.reply||''), actions };
+  return { reply:String(j.reply||''), actions, src:sourcesOf(meta.gm) };
 }
+const searchLevel = new Map();
+const JSON_ONLY = `\n\n[응답 형식] 반드시 JSON 객체 하나만 출력한다. 코드블록·설명 문장 없이 { 로 시작해 } 로 끝낸다. 키: reply(문자열), foods(배열: name, amount, kcal, carb, protein, fat), exercises(배열: name, amount, kcal), others(배열: type과 필요한 값). 기록할 것이 없으면 빈 배열.`;
+// 응답에서 JSON만 꺼냄 (앞뒤에 다른 글이나 코드블록이 붙어도)
+function parseJSON(raw){ const t=String(raw||'').replace(/^```(json)?|```$/g,'').trim();
+  try { return JSON.parse(t); } catch(_) {}
+  const a=t.indexOf('{'), b=t.lastIndexOf('}'); if (a<0 || b<=a) return null;
+  try { return JSON.parse(t.slice(a,b+1)); } catch(_) { return null; } }
+// 검색해서 답했으면 출처 목록 (사이트 이름 + 링크), Google 검색 추천 칩
+function sourcesOf(gm){ if (!gm) return null;
+  const seen=new Set(), list=[];
+  for (const c of (gm.groundingChunks||[])) { const w=c && c.web; if (!w || !w.uri) continue;
+    const t=String(w.title||'').trim() || '출처'; if (seen.has(t)) continue; seen.add(t); list.push({t, u:w.uri}); }
+  const chip = gm.searchEntryPoint && gm.searchEntryPoint.renderedContent || '';
+  if (!list.length && !chip) return null;
+  return { list: list.slice(0,6), chip }; }
 /* ============ 토큰 사용량 (고쉐와 같은 양식) ============ */
 // 추정 가격: 100만 토큰당 달러 [입력, 출력] — Gemini API 유료 등급 기준 (2026-10). 무료 등급이면 실제 청구는 0원
 const PRICE={'gemini-flash-latest':[0.75,3.75],'gemini-flash-lite-latest':[0.30,2.50],
@@ -794,18 +842,19 @@ const PRICE={'gemini-flash-latest':[0.75,3.75],'gemini-flash-lite-latest':[0.30,
 const KRW=1400;
 const USAGE_TAGS={chat:'대화', report:'주간 리포트'};
 // 호출마다 실제로 쓴 모델 가격으로 금액을 쌓음 (혼잡할 때 가벼운 모델로 넘어간 호출도 정확히)
-function logUsage(tag, model, u){ if(!u || !USAGE_TAGS[tag]) return;
+function logUsage(tag, model, u, searches){ if(!u || !USAGE_TAGS[tag]) return;
   const r=S.usage.rows[tag]||(S.usage.rows[tag]={n:0,inp:0,out:0,usd:0,unk:0});
+  r.q=(r.q||0)+(searches||0);                               // Google 검색 횟수 (검색 요금은 추정 금액에 넣지 않음)
   const inp=u.promptTokenCount||0, out=(u.candidatesTokenCount||0)+(u.thoughtsTokenCount||0);
   r.n++; r.inp+=inp; r.out+=out;
   const P=PRICE[String(model||'').trim().toLowerCase()];
   if (P) r.usd=(r.usd||0)+(inp*P[0]+out*P[1])/1e6; else r.unk=(r.unk||0)+1;
   save(); }
 function usageHTML(){ const U=S.usage; const ks=Object.keys(USAGE_TAGS); const f=n=>(n||0).toLocaleString('ko-KR');
-  const T={n:0,inp:0,out:0,usd:0,unk:0}; ks.forEach(k=>{ const r=U.rows[k]; if(r) for(const x in T) T[x]+=r[x]||0; });
+  const T={n:0,inp:0,out:0,usd:0,unk:0,q:0}; ks.forEach(k=>{ const r=U.rows[k]; if(r) for(const x in T) T[x]+=r[x]||0; });
   const won=r=>{ if(!r||!r.n) return '-'; if(r.unk && !r.usd) return '-'; const w=(r.usd||0)*KRW; return w<1?'1원 미만':'약 '+Math.round(w).toLocaleString('ko-KR')+'원'; };
-  const row=(name,r,cls)=>`<tr${cls?` class="${cls}"`:''}><td>${name}</td><td>${f(r&&r.n)}</td><td>${f(r&&r.inp)}</td><td>${f(r&&r.out)}</td><td>${won(r)}</td></tr>`;
-  return `<table class="usage"><tr><th>기능</th><th>호출</th><th>입력</th><th>출력</th><th>추정</th></tr>${ks.map(k=>row(USAGE_TAGS[k],U.rows[k])).join('')}${row('합계',T,'tot')}</table>
+  const row=(name,r,cls)=>`<tr${cls?` class="${cls}"`:''}><td>${name}</td><td>${f(r&&r.n)}</td><td>${f(r&&r.q)}</td><td>${f(r&&r.inp)}</td><td>${f(r&&r.out)}</td><td>${won(r)}</td></tr>`;
+  return `<table class="usage"><tr><th>기능</th><th>호출</th><th>검색</th><th>입력</th><th>출력</th><th>추정</th></tr>${ks.map(k=>row(USAGE_TAGS[k],U.rows[k])).join('')}${row('합계',T,'tot')}</table>
   <div class="ureset"><span>${new Date(U.since).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}부터</span><button id="uReset">초기화</button></div>`; }
 // 사용량 초기화: 전체 초기화와 별개. 한 번 더 눌러야 지워짐
 let uArm=false;
@@ -818,14 +867,14 @@ const GEN = { temperature:0.8, presencePenalty:0.25 };
 // Gemini 호출 공통: 응답 텍스트를 돌려주고, 오류는 AIError로
 // 모델이 presencePenalty를 지원하지 않으면 그 값만 빼고 한 번 더 보냄
 const noPenalty = new Set();
-async function geminiRaw(body, model, tag){
+async function geminiRaw(body, model, tag, meta){
   const strip = () => { const b2 = {...body, generationConfig:{...body.generationConfig}}; delete b2.generationConfig.presencePenalty; return b2; };
   const has = body.generationConfig && body.generationConfig.presencePenalty!=null;
-  if (has && noPenalty.has(model)) return geminiCall(strip(), model, tag);
-  try { return await geminiCall(body, model, tag); }
-  catch(e){ if (e.penalty && has) { noPenalty.add(model); return geminiCall(strip(), model, tag); } throw e; }
+  if (has && noPenalty.has(model)) return geminiCall(strip(), model, tag, meta);
+  try { return await geminiCall(body, model, tag, meta); }
+  catch(e){ if (e.penalty && has) { noPenalty.add(model); return geminiCall(strip(), model, tag, meta); } throw e; }
 }
-async function geminiCall(body, model, tag){
+async function geminiCall(body, model, tag, meta){
   const key=S.settings.apiKey;
   const ctl = new AbortController(); const timer = setTimeout(()=>ctl.abort(), TIMEOUT_MS);
   let res;
@@ -845,8 +894,10 @@ async function geminiCall(body, model, tag){
     if (res.status===429) throw new AIError('Gemini 사용 한도를 넘었어요. 잠시 후 다시 시도해 주세요.', false);
     if (res.status===404) throw new AIError(`모델 "${model}"을 찾을 수 없어요. 설정에서 모델명을 확인해 주세요.`, false);
     if (res.status>=500) throw new AIError('Gemini 서버가 혼잡해요. 잠시 후 다시 보내 주세요.', true);
-    throw new AIError(`Gemini 오류 (${res.status}): ${msg}`, false); }
-  logUsage(tag, model, data.usageMetadata);
+    const e=new AIError(`Gemini 오류 (${res.status}): ${msg}`, false); e.status=res.status; throw e; }
+  const gm = data.candidates && data.candidates[0] && data.candidates[0].groundingMetadata || null;
+  if (meta) meta.gm = gm;
+  logUsage(tag, model, data.usageMetadata, gm && Array.isArray(gm.webSearchQueries) ? gm.webSearchQueries.length : 0);
   const parts = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) || [];
   return parts.filter(p=>!p.thought && p.text).map(p=>p.text).join('').trim();
 }
@@ -1023,7 +1074,8 @@ async function runAI(text, img){
     const recText = recs.map(x=>`[${x.k}] ${x.name} ${x.amount} ${x.kcal}kcal`).join('\n');
     let txt = r.reply; if (notes.length) txt += (txt?'\n':'') + notes.join('\n');
     typeNextMsg();
-    addMsg('bot', txt || '기록했어요.', { recs: recs.length?recs:undefined, recText: recText||undefined });
+    addMsg('bot', txt || '기록했어요.', { recs: recs.length?recs:undefined, recText: recText||undefined, src: r.src||undefined });
+    trimChips();
   } catch(e) {
     addMsg('bot', (e && e.message) || 'AI에 연결하지 못했어요.', {sys:true, retry:text, retryImg:!!img});
     if (img) LASTIMG=img;
@@ -1049,14 +1101,14 @@ function buildWeek(ws){
   const slots = ids.map((id,i)=>{ const d=S.days[id], has=!!(d && d.foods.length);
     const w = d && d.weightAM || null; const pw = w ? lastWeightBeforeId(id) : null;
     return { id, dow:WD[dowOf(id)], inWeek:i>=3, has, surplus: has? summarize(d).surplus : null, burn: has? summarize(d).burn : null,
-      target: d && (d.targetKcal||null), weight:w, delta: (w && pw) ? r1(w-pw) : null }; });
+      target: d && (d.targetKcal||null), weight:w, delta: (w && pw) ? r2(w-pw) : null }; });
   const wk = slots.filter(s=>s.inWeek), rec = wk.filter(s=>s.has);
   const sum = rec.reduce((a,s)=>a+s.surplus,0);
   const lastW = [...wk].reverse().find(s=>s.weight), baseW = lastWeightBeforeId(ws);
   const tgt = (rec.find(s=>s.target)||{}).target || S.profile.targetKcal || 0;
   const avgBurn = Math.max(burnFloor(), rec.length ? Math.round(rec.reduce((a,s)=>a+s.burn,0)/rec.length) : goalMode().burn);
   return { ws, we, slots, n:rec.length, avg: rec.length? Math.round(sum/rec.length) : null, sum: rec.length? sum : null,
-    wchg: (lastW && baseW) ? r1(lastW.weight-baseW) : null, mode: tgt && avgBurn && tgt>avgBurn ? 'bulk' : 'cut', target:tgt, avgBurn };
+    wchg: (lastW && baseW) ? r2(lastW.weight-baseW) : null, mode: tgt && avgBurn && tgt>avgBurn ? 'bulk' : 'cut', target:tgt, avgBurn };
 }
 function reportSVG(D){
   const W=296,H=214,L=34,R=34,T=40,B=26, pw=W-L-R, ph=H-T-B, bw=pw/10;
@@ -1066,7 +1118,7 @@ function reportSVG(D){
   const ws=D.slots.filter(s=>s.weight).map(s=>s.weight);
   let wmin=Math.min(...ws), wmax=Math.max(...ws); if (ws.length){ wmin=Math.floor((wmin-0.2)*2)/2; wmax=Math.ceil((wmax+0.2)*2)/2; if (wmax-wmin<1) wmax=wmin+1; }
   const wy=v=>T+(wmax-v)/(wmax-wmin)*ph, cx=i=>L+i*bw+bw/2;
-  const o=[`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="주간 잉여 결핍과 체중">`];
+  const o=[`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="주간 칼로리 흑자·적자와 체중">`];
   o.push(`<text x="${L-4}" y="${T-12}" font-size="8" fill="rgba(255,255,255,.45)" text-anchor="end">체중±</text>`);
   o.push(`<text x="${L-4}" y="${T+3}" font-size="8" fill="rgba(255,255,255,.45)" text-anchor="end">kcal</text>`);
   if (ws.length) o.push(`<text x="${W-R+4}" y="${T+3}" font-size="8" fill="#3DDC97">kg</text>`);
@@ -1081,7 +1133,7 @@ function reportSVG(D){
     const lab = s.inWeek ? (s.has ? '#fff' : 'rgba(255,255,255,.35)') : 'rgba(255,255,255,.35)';
     o.push(`<text x="${cx(i).toFixed(1)}" y="${H-10}" font-size="9.5" font-weight="${s.inWeek&&s.has?700:400}" fill="${lab}" text-anchor="middle">${s.dow}</text>`);
     const good = s.delta!=null && (D.mode==='bulk' ? s.delta>0 : s.delta<0);
-    const dt = s.delta==null ? '–' : (s.delta>0?'+':'')+s.delta.toFixed(1);
+    const dt = s.delta==null ? '–' : (s.delta>0?'+':'')+s.delta.toFixed(2);
     const col = s.delta==null ? 'rgba(255,255,255,.35)' : good ? '#3DDC97' : 'rgba(255,255,255,.75)';
     o.push(`<text x="${cx(i).toFixed(1)}" y="${T-12}" font-size="8.6" font-weight="600" fill="${col}" text-anchor="middle" opacity="${s.inWeek?1:.55}">${dt}</text>`);
   });
@@ -1089,7 +1141,7 @@ function reportSVG(D){
   if (pts.length>1) o.push(`<polyline points="${pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ')}" fill="none" stroke="#3DDC97" stroke-width="2.4" stroke-linejoin="round"/>`);
   pts.forEach(p=>o.push(`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.6" fill="#1B2430" stroke="#3DDC97" stroke-width="2"/>`));
   const li=D.slots.map(s=>!!s.weight).lastIndexOf(true);
-  if (li>=0) o.push(`<text x="${cx(li).toFixed(1)}" y="${(wy(D.slots[li].weight)+14).toFixed(1)}" font-size="9" font-weight="700" fill="#fff" text-anchor="middle">${D.slots[li].weight.toFixed(1)}</text>`);
+  if (li>=0) o.push(`<text x="${cx(li).toFixed(1)}" y="${(wy(D.slots[li].weight)+14).toFixed(1)}" font-size="9" font-weight="700" fill="#fff" text-anchor="middle">${D.slots[li].weight.toFixed(2)}</text>`);
   o.push('</svg>');
   return o.join('');
 }
@@ -1097,10 +1149,10 @@ function reportHTML(rep){
   const D=rep.data, nn = D.n<7 && D.n>0 ? ` · ${D.n}일` : '';
   const st=(lab,v,unit,d=0)=>`<div><small>${lab}</small><b>${v==null?'–':d?(v>0?'+':'')+v.toFixed(d):sgn(v)}</b><small>${unit}${unit==='kcal'?nn:''}</small></div>`;
   return `<div class="rep num"><div class="rep-h">주간 리포트 <span>${md(D.ws)} – ${md(D.we)}</span></div>${reportSVG(D)}
-    <div class="rep-stats">${st('주간 평균',D.avg,'kcal')}${st('주간 누적',D.sum,'kcal')}${st('주간 체중',D.wchg,'kg',1)}</div></div>`;
+    <div class="rep-stats">${st('주간 평균',D.avg,'kcal')}${st('주간 누적',D.sum,'kcal')}${st('주간 체중',D.wchg,'kg',2)}</div></div>`;
 }
 function reportLine(rep){ const D=rep.data;
-  return `[주간 리포트 ${md(D.ws)}~${md(D.we)}] 기록 ${D.n}일 · 평균 ${D.avg==null?'-':sgn(D.avg)}kcal · 누적 ${D.sum==null?'-':sgn(D.sum)}kcal · 체중 ${D.wchg==null?'-':sgn(D.wchg,1)}kg`; }
+  return `[주간 리포트 ${md(D.ws)}~${md(D.we)}] 기록 ${D.n}일 · 평균 ${D.avg==null?'-':sgn(D.avg)}kcal · 누적 ${D.sum==null?'-':sgn(D.sum)}kcal · 체중 ${D.wchg==null?'-':sgn(D.wchg,2)}kg`; }
 function reportPrompt(){
   return `너는 식단관리 앱 "${APP_NAME}"의 트레이너다. 정중하고 활기차며, 공감 능력과 분석 능력이 모두 뛰어나다. 정확한 정보를 전달한다. 지난 한 주 기록을 보고 주간 리포트 아래에 붙을 조언을 쓴다.
 - 말투: 극존대(하십시오체)를 쓰지 않는 편안한 존댓말(해요체). 인사·서론 없이 바로 본론, 마무리는 현실적인 한마디. 영혼 없는 칭찬, 격식체, 거창한 비유는 금지. 느낌표는 기계적으로 붙이지 말고 정말 필요할 때만, 이모지는 쓰지 않는다.
@@ -1232,6 +1284,7 @@ function renderChat(){
     let inner = typing ? (TW.lines ? `<span class="tw-text tw-clip" style="height:${twHeight()}px">${twLinesHTML()}</span>` : `<span class="tw-text tw-measure">${esc(m.text)}</span>`) : esc(m.text);
     if (m.kind==='report' && S.reports[m.week]) inner = reportHTML(S.reports[m.week]) + inner;
     if (m.recs && !typing) inner += `<div class="rec">` + m.recs.map(x=>`<div class="rec-item"><div class="rec-row"><span class="rn"><span class="tag">${x.k}</span>${esc(x.name)} <em>${esc(x.amount||'')}</em></span><span class="rk num">${N(x.kcal)} kcal</span></div>${x.k==='섭취'?`<div class="rec-m num">탄 ${N(x.carb,1)} · 단 ${N(x.protein,1)} · 지 ${N(x.fat,1)} g</div>`:''}</div>`).join('') + `</div>`;
+    if (m.src && !typing) inner += srcHTML(m.src, i);
     if (m.retry && i===S.chat.length-1) inner += `<button class="retry" data-retry="${i}">다시 보내기</button>`;
     html += m.role==='user'
       ? (m.img ? `<div class="msg user"><span class="time">${hm(m.t)}</span><div class="stack"><img class="pimg" src="${m.img}" alt="보낸 사진" data-view="${i}">${m.text?`<div class="bubble">${inner}</div>`:''}</div></div>`
@@ -1242,6 +1295,7 @@ function renderChat(){
   if (lu>=0) html += `</div>`;
   const keep = box.scrollTop;
   box.innerHTML=`<div class="chat-in"><div>${html}</div></div>`;
+  mountChips(box);
   fitChat();
   if (SCR.sendPending) {                                  // 방금 질문을 보냄 → 그 질문을 0.3초 부드러운 스크롤로 맨 위에
     SCR.sendPending=false; box.scrollTop=keep;
@@ -1254,6 +1308,17 @@ function renderChat(){
   if (SCR.keepOnce) { SCR.keepOnce=false; box.scrollTop=keep; return; }   // 답변 다 나온 뒤: 직접 올려 읽던 중이면 그 자리
   box.scrollTop=box.scrollHeight;
 }
+// 검색 출처: 사이트 이름을 누르면 새 창. Google 검색 추천 칩은 Google 약관상 함께 보여야 해서 그대로 붙임
+function srcHTML(src, i){
+  const links = (src.list||[]).map(x=>`<a href="${esc(x.u)}" target="_blank" rel="noopener">${esc(x.t)}</a>`).join('');
+  return `<div class="src">${links?`검색 출처 ${links}`:'검색해서 답했어요'}</div>` + (src.chip?`<div class="gsep" data-chip="${i}"></div>`:''); }
+// 추천 칩은 Google이 준 HTML이라 앱 스타일과 섞이지 않게 그림자 영역에 넣음 (스크립트는 실행되지 않음)
+function mountChips(box){ box.querySelectorAll('.gsep[data-chip]').forEach(el=>{ const m=S.chat[+el.dataset.chip];
+  if (!m || !m.src || !m.src.chip || el.shadowRoot) return;
+  el.attachShadow({mode:'open'}).innerHTML = m.src.chip;
+  el.shadowRoot.querySelectorAll('a').forEach(a=>{ a.target='_blank'; a.rel='noopener'; }); }); }
+// 칩 HTML은 길어서 최근 20개 답에만 남김 (출처 링크는 계속 남음)
+function trimChips(){ let k=0; for (let i=S.chat.length-1;i>=0;i--){ const m=S.chat[i]; if (m.src && m.src.chip && ++k>20) m.src.chip=''; } }
 /* 질문 올리기 스크롤: 처음 빠르게, 끝에서 감속 */
 const SCROLL_MS = 300;
 const SCR = { sendPending:false, anim:false, keepOnce:false, raf:0, spacer:false };
@@ -1297,20 +1362,29 @@ function closeSheets(){ document.querySelectorAll('.open:not(.closing)').forEach
   el._closeT = setTimeout(()=>el.classList.remove('open','closing'), SHEET_MS);
 }); }
 document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click', closeSheets));
+// 오늘 요약 3칸: 작은 쪽 + 칼로리 적자/흑자 = 큰 쪽. 예상 체중 변화는 긴 칸 안 가운데
+// 한 줄에 둘이 있으면 실제 숫자 비율로 폭을 나눔 (최소 폭은 CSS의 min-width)
+function summaryBoxes(s){
+  const plus = s.surplus>=0, diff=Math.abs(s.surplus);
+  const box = (cls, lab, val, unit, grow, exp) => `<div class="d-box ${cls}" style="flex:${Math.max(1,grow)} 1 0">`
+    + `<span class="s-label">${lab}</span><b>${val} <small>${unit}</small></b>`
+    + (exp ? `<span class="d-exp${plus?' plus':''}">${s.expKg>0?'+':''}${(Math.round(s.expKg*100)/100).toFixed(2)}kg</span>` : '') + `</div>`;
+  const burn = (grow, exp) => box('out', '소모', N(s.burn), 'kcal', grow, exp);
+  const intake = (grow, exp) => box('in', '섭취', N(s.intake), 'kcal', grow, exp);
+  const dbox = grow => box('diff'+(plus?' plus':''), plus?'흑자':'적자', sgn(s.surplus), 'kcal', grow);
+  return `<div class="d-sum num">` + (plus
+    ? `<div class="d-row">${burn(s.burn)}${dbox(diff)}</div><div class="d-row">${intake(1, true)}</div>`
+    : `<div class="d-row">${burn(1, true)}</div><div class="d-row">${intake(s.intake)}${dbox(diff)}</div>`) + `</div>`;
+}
 function renderDaySheet(){
   const d=S.cur&&S.days[S.cur]; const b=$('#dayBody');
   if(!d){ b.innerHTML='<p class="empty">아직 기록이 없어요.</p>'; return; }
   const s=summarize(d);
   const del = (kind,id)=>`<button class="del" data-del="${kind}:${id}" aria-label="삭제"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>`;
   let h = `<div class="sec">${dayTitle(d.id)} · 오늘 요약</div>
-    <div class="d-grid num">
-      <div><span class="s-label">섭취</span><b>${N(s.intake)} <small>kcal</small></b></div>
-      <div><span class="s-label">${s.surplus>=0?'잉여':'결핍'}</span><b class="${s.surplus>0?'pos':'neg'}">${sgn(s.surplus)} <small>kcal</small></b></div>
-      <div><span class="s-label">소모</span><b>${N(s.burn)} <small>kcal</small></b></div>
-      <div><span class="s-label">예상 체중 변화</span><b class="${s.expKg>0?'pos':'neg'}">${sgn(s.expKg,2)} <small>kg</small></b></div>
-    </div>
+    ${summaryBoxes(s)}
     <div class="sec">소모 내역</div>
-    <div class="list-item"><div class="grow">기초대사량<small>몸무게 ${N(s.weight,1)}kg 기준</small></div><span class="num">${N(s.bmr)} kcal</span></div>
+    <div class="list-item"><div class="grow">기초대사량<small>몸무게 ${N(s.weight,2)}kg 기준</small></div><span class="num">${N(s.bmr)} kcal</span></div>
     <div class="list-item pull" id="stepRow"><div class="grow">걸음 ${N(s.steps)}보<small>${S.steps.length? '마지막 갱신 '+hm(S.steps[S.steps.length-1].t):'아직 걸음 데이터 없음'}</small></div><span class="num">${N(s.stepKcal)} kcal</span></div>`;
   h += d.exercises.map(x=>`<div class="list-item"><div class="grow">${esc(x.name)}<small>${hm(x.t)} ${esc(x.amount||'')}</small></div><span class="num">${N(x.kcal)} kcal</span>${del('e',x.id)}</div>`).join('');
   h += `<div class="sec">섭취 내역 · 탄 ${N(s.carb,1)} / 단 ${N(s.protein,1)} / 지 ${N(s.fat,1)} g</div>`;
@@ -1319,10 +1393,10 @@ function renderDaySheet(){
   h += `<div class="sec">메모·일정</div>` + (memoList.length ? memoList.map(n=>`<div class="list-item"><div class="grow">${esc(n.text)}<small>${relDay(n.date)} · ${n.date.slice(5).replace('-','/')}</small></div><button class="del" data-note="${n.id}" aria-label="메모 삭제"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>`).join('') : '<p class="empty">채팅으로 "오늘 저녁 회식 있어"처럼 말하면 메모돼요. AI는 어제·오늘·내일 메모를 감안해 조언해요.</p>');
   const hasM = d.weightAM || d.bodyFat;
   h += `<div class="sec">아침 측정</div><div class="list-item"><div class="grow">공복 몸무게 ${d.weightAM? d.weightAM+' kg':'-'} · 체지방률 ${d.bodyFat? d.bodyFat+'%':'-'}${hasM && d.weighAt? ` · ${hm(d.weighAt)}`:''}
-    ${d.actualChange!=null?`<small>전일 대비 ${sgn(d.actualChange,1)} kg${d.prevExpected!=null?` · 예상 ${sgn(d.prevExpected,2)} kg`:''}</small>`:''}</div>${hasM? `<button class="del" data-morning aria-label="아침 측정 삭제"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>`:''}</div>`;
+    ${d.actualChange!=null?`<small>전일 대비 ${sgn(d.actualChange,2)} kg${d.prevExpected!=null?` · 예상 ${sgn(d.prevExpected,2)} kg`:''}</small>`:''}</div>${hasM? `<button class="del" data-morning aria-label="아침 측정 삭제"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>`:''}</div>`;
   const ids=sortedIds().reverse().slice(0,14);
-  h += `<div class="sec">최근 기록</div><table class="hist num"><tr><th>날짜</th><th>섭취</th><th>소모</th><th>잉여/결핍</th><th>체중</th></tr>` +
-    ids.map(i=>{ const x=S.days[i], z=summarize(x); return `<tr><td>${i.slice(5).replace('-','/')}</td><td>${N(z.intake)}</td><td>${N(z.burn)}</td><td class="${z.surplus>0?'pos':'neg'}">${sgn(z.surplus)}</td><td>${x.weightAM||'-'}</td></tr>`; }).join('') + `</table>`;
+  h += `<div class="sec">최근 기록</div><div class="hist-wrap"><table class="hist num"><tr><th>날짜</th><th>섭취</th><th>소모</th><th>흑자/적자</th><th>체중</th><th>체지방</th><th>탄</th><th>단</th><th>지</th></tr>` +
+    ids.map(i=>{ const x=S.days[i], z=summarize(x); return `<tr><td>${i.slice(5).replace('-','/')}</td><td>${N(z.intake)}</td><td>${N(z.burn)}</td><td class="${z.surplus>0?'pos':'neg'}">${sgn(z.surplus)}</td><td>${x.weightAM?N(x.weightAM,2):'-'}</td><td>${x.bodyFat?N(x.bodyFat,1)+'%':'-'}</td><td>${N(z.carb,1)}</td><td>${N(z.protein,1)}</td><td>${N(z.fat,1)}</td></tr>`; }).join('') + `</table></div>`;
   b.innerHTML=h;
   b.querySelectorAll('[data-note]').forEach(btn=>btn.addEventListener('click',()=>{
     const n=removeNote(btn.dataset.note); if(n){ logDelete('n', `'${n.text}' 메모`); render(); renderDaySheet(); }
@@ -1418,7 +1492,6 @@ function fillSettings(){
   $('#f_tk').value=p.targetKcal||''; $('#f_tp').value=p.targetProtein||'';
   $('#f_key').value=S.settings.apiKey||''; $('#f_model').value=S.settings.model||DEFAULT_MODEL;
   $('#stepUrl').textContent = stepUrl();
-  const st=stepStatus(); $('#syncInfo').textContent = st? `마지막 걸음 데이터: ${st.when} 받음 · 오늘 ${N(st.count)}보` : '아직 받은 걸음 데이터가 없어요.';
   $('#usage').innerHTML = usageHTML();
   $('#appVer').textContent = APP_VERSION;
   $('#f_theme').value = S.settings.theme || 'cg';
