@@ -185,7 +185,8 @@ body.kb #composer{padding-bottom:8px}   /* 키보드가 올라와 있으면 홈 
 .del{color:var(--faint);width:30px;height:30px;border-radius:8px;display:grid;place-items:center;flex:none}
 .del:active{background:var(--soft)}
 .hist-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -16px;padding:0 16px}
-table.hist{width:100%;border-collapse:collapse;font-size:13px;white-space:nowrap}
+table.hist{width:calc((100vw - 32px) * 1.7);border-collapse:collapse;font-size:13px;white-space:nowrap;table-layout:fixed}
+table.hist col{width:10.25%}table.hist col.w{width:12%}table.hist col.d{width:11%}
 table.hist th{font-weight:500;color:var(--sub);font-size:11.5px;text-align:right;padding:6px 4px;border-bottom:1px solid var(--line)}
 table.hist td{text-align:right;padding:7px 4px;border-bottom:1px solid var(--line)}
 table.hist th:first-child,table.hist td:first-child{text-align:left}
@@ -376,7 +377,7 @@ body.theme-jc{--jb:#1F6F9E;--jb2:#2477A8;--jc:#E8573A;--jcl:#F4A894}
 /* ============ 저장소 ============ */
 const LS = 'dietnote.v1';
 const APP_NAME = 'Bite with me!';
-const APP_VERSION = 'v1.5.3';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
+const APP_VERSION = 'v1.5.4';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
 const DEFAULT_MODEL = 'gemini-flash-latest';
 const KCAL_PER_KG = 7700;
 const NEW_DAY_HOUR = 4;               // 이 시각 이전은 전날로 취급
@@ -400,6 +401,7 @@ const N = (v, d=0) => (v==null || isNaN(v)) ? '-' : Number(v).toLocaleString('ko
 const sgn = (v, d=0) => (v>0?'+':'') + N(v,d);
 const r1 = v => Math.round(v*10)/10;
 const r2 = v => Math.round(v*100)/100;   // 체중은 소수 둘째 자리까지
+const f2 = v => (v>0?'+':'') + r2(v).toFixed(2);   // +0.10 처럼 둘째 자리까지 표시
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const WD = ['일','월','화','수','목','금','토'];
 const dayTitle = id => { const [y,m,d] = id.split('-').map(Number); const dt = new Date(y,m-1,d); return `${m}월 ${d}일 (${WD[dt.getDay()]})`; };
@@ -1392,11 +1394,11 @@ function renderDaySheet(){
   const memoList = S.notes.filter(n=>n.date>=nextDate(d.id,-1)).slice(0,30);
   h += `<div class="sec">메모·일정</div>` + (memoList.length ? memoList.map(n=>`<div class="list-item"><div class="grow">${esc(n.text)}<small>${relDay(n.date)} · ${n.date.slice(5).replace('-','/')}</small></div><button class="del" data-note="${n.id}" aria-label="메모 삭제"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>`).join('') : '<p class="empty">채팅으로 "오늘 저녁 회식 있어"처럼 말하면 메모돼요. AI는 어제·오늘·내일 메모를 감안해 조언해요.</p>');
   const hasM = d.weightAM || d.bodyFat;
-  h += `<div class="sec">아침 측정</div><div class="list-item"><div class="grow">공복 몸무게 ${d.weightAM? d.weightAM+' kg':'-'} · 체지방률 ${d.bodyFat? d.bodyFat+'%':'-'}${hasM && d.weighAt? ` · ${hm(d.weighAt)}`:''}
-    ${d.actualChange!=null?`<small>전일 대비 ${sgn(d.actualChange,2)} kg${d.prevExpected!=null?` · 예상 ${sgn(d.prevExpected,2)} kg`:''}</small>`:''}</div>${hasM? `<button class="del" data-morning aria-label="아침 측정 삭제"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>`:''}</div>`;
+  h += `<div class="sec">아침 측정</div><div class="list-item"><div class="grow">공복 몸무게 ${d.weightAM? d.weightAM.toFixed(2)+' kg':'-'} · 체지방률 ${d.bodyFat? d.bodyFat+'%':'-'}${hasM && d.weighAt? ` · ${hm(d.weighAt)}`:''}
+    ${d.actualChange!=null?`<small>전일 대비 ${f2(d.actualChange)} kg${d.prevExpected!=null?` · 예상 ${f2(d.prevExpected)} kg`:''}</small>`:''}</div>${hasM? `<button class="del" data-morning aria-label="아침 측정 삭제"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>`:''}</div>`;
   const ids=sortedIds().reverse().slice(0,14);
-  h += `<div class="sec">최근 기록</div><div class="hist-wrap"><table class="hist num"><tr><th>날짜</th><th>섭취</th><th>소모</th><th>흑자/적자</th><th>체중</th><th>체지방</th><th>탄</th><th>단</th><th>지</th></tr>` +
-    ids.map(i=>{ const x=S.days[i], z=summarize(x); return `<tr><td>${i.slice(5).replace('-','/')}</td><td>${N(z.intake)}</td><td>${N(z.burn)}</td><td class="${z.surplus>0?'pos':'neg'}">${sgn(z.surplus)}</td><td>${x.weightAM?N(x.weightAM,2):'-'}</td><td>${x.bodyFat?N(x.bodyFat,1)+'%':'-'}</td><td>${N(z.carb,1)}</td><td>${N(z.protein,1)}</td><td>${N(z.fat,1)}</td></tr>`; }).join('') + `</table></div>`;
+  h += `<div class="sec">최근 기록</div><div class="hist-wrap"><table class="hist num"><colgroup><col class="d"><col class="w"><col class="w"><col class="w"><col class="w"><col><col><col><col></colgroup><tr><th>날짜</th><th>섭취</th><th>소모</th><th>흑자/적자</th><th>체중</th><th>체지방</th><th>탄</th><th>단</th><th>지</th></tr>` +
+    ids.map(i=>{ const x=S.days[i], z=summarize(x); return `<tr><td>${i.slice(5).replace('-','/')}</td><td>${N(z.intake)}</td><td>${N(z.burn)}</td><td class="${z.surplus>0?'pos':'neg'}">${sgn(z.surplus)}</td><td>${x.weightAM?x.weightAM.toFixed(2):'-'}</td><td>${x.bodyFat?N(x.bodyFat,1)+'%':'-'}</td><td>${N(z.carb,1)}</td><td>${N(z.protein,1)}</td><td>${N(z.fat,1)}</td></tr>`; }).join('') + `</table></div>`;
   b.innerHTML=h;
   b.querySelectorAll('[data-note]').forEach(btn=>btn.addEventListener('click',()=>{
     const n=removeNote(btn.dataset.note); if(n){ logDelete('n', `'${n.text}' 메모`); render(); renderDaySheet(); }
