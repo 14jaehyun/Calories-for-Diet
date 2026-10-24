@@ -376,7 +376,7 @@ body.theme-jc{--jb:#1F6F9E;--jb2:#2477A8;--jc:#E8573A;--jcl:#F4A894}
 /* ============ 저장소 ============ */
 const LS = 'dietnote.v1';
 const APP_NAME = 'Bite with me!';
-const APP_VERSION = 'v1.5.7';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
+const APP_VERSION = 'v1.5.8';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
 const DEFAULT_MODEL = 'gemini-flash-latest';
 const KCAL_PER_KG = 7700;
 const NEW_DAY_HOUR = 4;               // 이 시각 이전은 전날로 취급
@@ -1448,6 +1448,7 @@ function closePanel(){ panelX(innerWidth, true); panelOpen=false;
   let sx=0, sy=0, st=0, lock=null, active=false;   // lock: 'h' 가로로 미는 중, 'v' 세로 스크롤
   let hist=null, zeroAt=null, base=0;               // 최근 기록 표 위에서 시작한 밀기
   const HIST_BUFFER = 60;                           // 표가 맨 앞에 닿은 뒤 이만큼(px) 더 당겨야 화면이 따라 움직임
+  const HIST_CLOSE = 78;                            // 버퍼를 지난 뒤 이만큼(px) 더 끌고 놓으면 닫힘 (표 바깥은 화면 폭의 30%)
   const sheetOpen = () => !!document.querySelector('#setSheet.open') || !$('#crop').hidden || !$('#viewer').hidden;
   document.addEventListener('touchstart', e=>{
     if (e.touches.length!==1 || sheetOpen()) { active=false; return; }
@@ -1479,7 +1480,7 @@ function closePanel(){ panelX(innerWidth, true); panelOpen=false;
   document.addEventListener('touchend', e=>{
     if (!active || lock!=='h') { active=false; return; } active=false;
     const dx=e.changedTouches[0].clientX-sx-base, v=Math.abs(dx)/Math.max(1, Date.now()-st);
-    const far = Math.abs(dx) > innerWidth*0.3 || (v > 0.5 && !hist);   // 표에서 시작한 밀기는 빠르게 튕겨도 거리로만 판단
+    const far = hist ? Math.abs(dx) > HIST_CLOSE : (Math.abs(dx) > innerWidth*0.3 || v > 0.5);   // 표에서 시작한 밀기는 거리로만 판단
     if (far) tung().catch(()=>{});                                          // 대화 ↔ 기록 화면 전환 소리
     if (panelOpen) { far ? closePanel() : panelX(0, true); }
     else { far ? openPanel() : closePanel(); }
