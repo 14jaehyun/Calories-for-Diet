@@ -154,7 +154,7 @@ body.kb #composer{padding-bottom:8px}   /* 키보드가 올라와 있으면 홈 
 .sec{font-size:12px;color:var(--sub);margin:16px 0 6px;font-weight:600}
 .field{display:flex;align-items:center;border-bottom:1px solid var(--line);padding:4px 0}
 .field label{width:118px;color:var(--sub);font-size:14px;flex:none}
-.field input,.field select{flex:1;border:0;outline:none;padding:9px 0;background:transparent;min-width:0}
+.field input,.field select{flex:1;border:0;outline:none;padding:9px 0;background:transparent;min-width:0;font-size:14px}   /* 라벨과 같은 크기 (v1.5.9) */
 .field .unit{color:var(--faint);font-size:13px;margin-left:6px}
 .btn{display:block;width:100%;padding:12px;border-radius:12px;background:var(--blue);color:#fff;font-weight:600;margin-top:12px;text-align:center}
 .btn.ghost{background:var(--soft);color:var(--blue)}
@@ -190,6 +190,7 @@ table.hist th{font-weight:500;color:var(--sub);font-size:11.5px;text-align:right
 table.hist td{text-align:right;padding:7px 4px;border-bottom:1px solid var(--line)}
 table.hist th:first-child,table.hist td:first-child{text-align:left}
 .empty{color:var(--faint);font-size:13px;padding:8px 0}
+.lastmeal{color:var(--mint-bar);font-weight:700;margin-left:4px}   /* 마지막 식사 후 경과 (v1.5.9) */
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:9px 14px;border-radius:10px;font-size:13px;opacity:.92;z-index:20;pointer-events:none;display:none}
 .toast.show{display:block;animation:fadeIn .2s ease}
 /* ===== 사진 첨부 (v1.4.0) ===== */
@@ -261,14 +262,18 @@ body.theme-jc{--jb:#1F6F9E;--jb2:#2477A8;--jc:#E8573A;--jcl:#F4A894}
 /* 기록 화면 */
 .theme-jc .panel-h h2{color:var(--jb)}.theme-jc .panel-h .icon-btn{color:var(--jc)}
 .theme-jc .sec{color:var(--jc);font-weight:700}
-.theme-jc .list-item,.theme-jc .list-item small,.theme-jc .list-item span,.theme-jc .del,.theme-jc table.hist th,.theme-jc table.hist td,.theme-jc .empty,.theme-jc .s-label{color:var(--jb)}
+.theme-jc .list-item,.theme-jc .list-item span,.theme-jc table.hist td,.theme-jc .s-label{color:var(--jb)}
+.theme-jc .list-item small,.theme-jc table.hist th{color:#84B0CA}   /* 청녹의 --sub 자리: 시간·탄단지·마지막 갱신 등 보조 줄 */
+.theme-jc .del,.theme-jc .empty{color:#A9C6D8}                      /* 청녹의 --faint 자리: × 버튼, 빈 기록 안내 */
+.theme-jc .lastmeal{color:var(--jc)}
 .theme-jc .d-box{background:#fff;border-color:var(--jb);color:var(--jb)}.theme-jc .d-box .s-label,.theme-jc .d-box small{color:inherit}
 .theme-jc .d-box.in{background:#EAE6E6}
 .theme-jc .d-box.diff{background:var(--jc);border-color:var(--jc);color:#fff}.theme-jc .d-box.diff .s-label,.theme-jc .d-box.diff small{color:#fff}
 .theme-jc .d-box.diff.plus{background:var(--jb);border-color:var(--jb)}
 .theme-jc .d-exp{color:var(--jc)}.theme-jc .d-exp.plus{color:var(--jb)}
+.theme-jc .rep{background:var(--jb)}.theme-jc .rep-stats b.wk{color:var(--jc)}
 .theme-jc .src{border-top-color:#F6BCB0;color:var(--jc)}.theme-jc .src a{color:var(--jc)}
-.theme-jc .list-item span[style]{color:var(--jb)!important}
+.theme-jc .list-item span[style]{color:#84B0CA!important}   /* 음식 양 */
 .theme-jc .pos,.theme-jc .neg{color:var(--jb)!important}
 .theme-jc .pull.ready .num{color:var(--jc)}
 /* 설정 */
@@ -344,7 +349,7 @@ body.theme-jc{--jb:#1F6F9E;--jb2:#2477A8;--jc:#E8573A;--jcl:#F4A894}
       <button class="btn" id="saveProfile">저장</button>
 
       <div class="sec">테마</div>
-      <div class="field"><label for="f_theme">테마제목</label><select id="f_theme"><option value="cg">청녹</option><option value="jc">주청</option></select></div>
+      <div class="field"><label for="f_theme">테마 제목</label><select id="f_theme"><option value="cg">청녹</option><option value="jc">주청</option></select></div>
 
       <div class="sec">AI (Google Gemini)</div>
       <div class="field"><label for="f_key">API 키</label><input id="f_key" type="password" placeholder="AIza…" autocomplete="off" class="sel"></div>
@@ -376,7 +381,7 @@ body.theme-jc{--jb:#1F6F9E;--jb2:#2477A8;--jc:#E8573A;--jcl:#F4A894}
 /* ============ 저장소 ============ */
 const LS = 'dietnote.v1';
 const APP_NAME = 'Bite with me!';
-const APP_VERSION = 'v1.5.8';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
+const APP_VERSION = 'v1.5.9';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
 const DEFAULT_MODEL = 'gemini-flash-latest';
 const KCAL_PER_KG = 7700;
 const NEW_DAY_HOUR = 4;               // 이 시각 이전은 전날로 취급
@@ -1111,6 +1116,7 @@ function buildWeek(ws){
     wchg: (lastW && baseW) ? r2(lastW.weight-baseW) : null, mode: tgt && avgBurn && tgt>avgBurn ? 'bulk' : 'cut', target:tgt, avgBurn };
 }
 function reportSVG(D){
+  const JC=S.settings.theme==='jc', ACC=JC?'#E8573A':'#3DDC97', BG=JC?'#1F6F9E':'#1B2430';   // 주청: 바탕 파랑·포인트 코랄
   const W=296,H=214,L=34,R=34,T=40,B=26, pw=W-L-R, ph=H-T-B, bw=pw/10;
   const vals=D.slots.filter(s=>s.has).map(s=>Math.abs(s.surplus));
   const mx=Math.max(400, Math.ceil(Math.max(0,...vals)/400)*400);
@@ -1121,12 +1127,12 @@ function reportSVG(D){
   const o=[`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="주간 칼로리 흑자·적자와 체중">`];
   o.push(`<text x="${L-4}" y="${T-12}" font-size="8" fill="rgba(255,255,255,.45)" text-anchor="end">체중±</text>`);
   o.push(`<text x="${L-4}" y="${T+3}" font-size="8" fill="rgba(255,255,255,.45)" text-anchor="end">kcal</text>`);
-  if (ws.length) o.push(`<text x="${W-R+4}" y="${T+3}" font-size="8" fill="#3DDC97">kg</text>`);
+  if (ws.length) o.push(`<text x="${W-R+4}" y="${T+3}" font-size="8" fill="${ACC}">kg</text>`);
   for (const v of [-mx,-mx/2,0,mx/2]){ const y=ky(v);
     o.push(`<line x1="${L}" x2="${W-R}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}" stroke="${v===0?'rgba(255,255,255,.55)':'rgba(255,255,255,.12)'}" stroke-width="${v===0?1.2:1}"/>`);
     o.push(`<text x="${L-4}" y="${(y+3).toFixed(1)}" font-size="8.5" fill="rgba(255,255,255,.55)" text-anchor="end">${v>0?'+':''}${v}</text>`); }
   if (ws.length) for (let v=Math.ceil(wmin*2)/2; v<=wmax+1e-9; v+=0.5){ if (v<=wmin+0.05 || v>=wmax-0.05) continue;
-    o.push(`<text x="${W-R+4}" y="${(wy(v)+3).toFixed(1)}" font-size="8.5" fill="#3DDC97">${v.toFixed(1)}</text>`); }
+    o.push(`<text x="${W-R+4}" y="${(wy(v)+3).toFixed(1)}" font-size="8.5" fill="${ACC}">${v.toFixed(1)}</text>`); }
   D.slots.forEach((s,i)=>{
     if (s.has){ const y0=ky(0), y1=ky(s.surplus);
       o.push(`<rect x="${(L+i*bw+bw*0.2).toFixed(1)}" y="${Math.min(y0,y1).toFixed(1)}" width="${(bw*0.6).toFixed(1)}" height="${Math.max(1,Math.abs(y1-y0)).toFixed(1)}" rx="2" fill="${s.inWeek?'rgba(255,255,255,.32)':'rgba(255,255,255,.13)'}"/>`); }
@@ -1134,12 +1140,12 @@ function reportSVG(D){
     o.push(`<text x="${cx(i).toFixed(1)}" y="${H-10}" font-size="9.5" font-weight="${s.inWeek&&s.has?700:400}" fill="${lab}" text-anchor="middle">${s.dow}</text>`);
     const good = s.delta!=null && (D.mode==='bulk' ? s.delta>0 : s.delta<0);
     const dt = s.delta==null ? '–' : (s.delta>0?'+':'')+s.delta.toFixed(2);
-    const col = s.delta==null ? 'rgba(255,255,255,.35)' : good ? '#3DDC97' : 'rgba(255,255,255,.75)';
+    const col = s.delta==null ? 'rgba(255,255,255,.35)' : good ? ACC : 'rgba(255,255,255,.75)';
     o.push(`<text x="${cx(i).toFixed(1)}" y="${T-12}" font-size="8.6" font-weight="600" fill="${col}" text-anchor="middle" opacity="${s.inWeek?1:.55}">${dt}</text>`);
   });
   const pts=D.slots.map((s,i)=>s.weight?[cx(i),wy(s.weight)]:null).filter(Boolean);
-  if (pts.length>1) o.push(`<polyline points="${pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ')}" fill="none" stroke="#3DDC97" stroke-width="2.4" stroke-linejoin="round"/>`);
-  pts.forEach(p=>o.push(`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.6" fill="#1B2430" stroke="#3DDC97" stroke-width="2"/>`));
+  if (pts.length>1) o.push(`<polyline points="${pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ')}" fill="none" stroke="${ACC}" stroke-width="2.4" stroke-linejoin="round"/>`);
+  pts.forEach(p=>o.push(`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.6" fill="${BG}" stroke="${ACC}" stroke-width="2"/>`));
   const li=D.slots.map(s=>!!s.weight).lastIndexOf(true);
   if (li>=0) o.push(`<text x="${cx(li).toFixed(1)}" y="${(wy(D.slots[li].weight)+14).toFixed(1)}" font-size="9" font-weight="700" fill="#fff" text-anchor="middle">${D.slots[li].weight.toFixed(2)}</text>`);
   o.push('</svg>');
@@ -1147,7 +1153,7 @@ function reportSVG(D){
 }
 function reportHTML(rep){
   const D=rep.data, nn = D.n<7 && D.n>0 ? ` · ${D.n}일` : '';
-  const st=(lab,v,unit,d=0)=>`<div><small>${lab}</small><b>${v==null?'–':d?(v>0?'+':'')+v.toFixed(d):sgn(v)}</b><small>${unit}${unit==='kcal'?nn:''}</small></div>`;
+  const st=(lab,v,unit,d=0)=>`<div><small>${lab}</small><b${unit==='kg'?' class="wk"':''}>${v==null?'–':d?(v>0?'+':'')+v.toFixed(d):sgn(v)}</b><small>${unit}${unit==='kcal'?nn:''}</small></div>`;
   return `<div class="rep num"><div class="rep-h">주간 리포트 <span>${md(D.ws)} – ${md(D.we)}</span></div>${reportSVG(D)}
     <div class="rep-stats">${st('주간 평균',D.avg,'kcal')}${st('주간 누적',D.sum,'kcal')}${st('주간 체중',D.wchg,'kg',2)}</div></div>`;
 }
@@ -1368,6 +1374,9 @@ function summaryBoxes(s){
     ? `<div class="d-row">${burn(s.burn)}${dbox(diff)}</div><div class="d-row">${intake(1, true)}</div>`
     : `<div class="d-row">${burn(1, true)}</div><div class="d-row">${intake(s.intake)}${dbox(diff)}</div>`) + `</div>`;
 }
+// 마지막 식사(10kcal 이상) 이후 경과 — 화면 표시용, AI에는 넘기지 않음
+function lastMeal(){ let b=null; for (const id in S.days) for (const f of (S.days[id].foods||[])) if ((+f.kcal||0)>=10 && f.t && (!b || f.t>b.t)) b=f; return b; }
+function agoTag(t){ const m=Math.max(0,Math.floor((Date.now()-t)/60000)); return `<b class="lastmeal">(${Math.floor(m/60)}:${pad(m%60)}전)</b>`; }
 function renderDaySheet(){
   const d=S.cur&&S.days[S.cur]; const b=$('#dayBody');
   if(!d){ b.innerHTML='<p class="empty">아직 기록이 없어요.</p>'; return; }
@@ -1380,7 +1389,8 @@ function renderDaySheet(){
     <div class="list-item pull" id="stepRow"><div class="grow">걸음 ${N(s.steps)}보<small>${S.steps.length? '마지막 갱신 '+hm(S.steps[S.steps.length-1].t):'아직 걸음 데이터 없음'}</small></div><span class="num">${N(s.stepKcal)} kcal</span></div>`;
   h += d.exercises.map(x=>`<div class="list-item"><div class="grow">${esc(x.name)}<small>${hm(x.t)} ${esc(x.amount||'')}</small></div><span class="num">${N(x.kcal)} kcal</span>${del('e',x.id)}</div>`).join('');
   h += `<div class="sec">섭취 내역 · 탄 ${N(s.carb,1)} / 단 ${N(s.protein,1)} / 지 ${N(s.fat,1)} g</div>`;
-  h += d.foods.length ? d.foods.map(x=>`<div class="list-item"><div class="grow">${esc(x.name)} <span style="color:var(--sub)">${esc(x.amount||'')}</span><small>${hm(x.t)} · 탄${N(x.carb,1)} 단${N(x.protein,1)} 지${N(x.fat,1)}g</small></div><span class="num">${N(x.kcal)} kcal</span>${del('f',x.id)}</div>`).join('') : '<p class="empty">아직 먹은 기록이 없어요.</p>';
+  const lm=lastMeal();
+  h += d.foods.length ? d.foods.map(x=>`<div class="list-item"><div class="grow">${esc(x.name)} <span style="color:var(--sub)">${esc(x.amount||'')}</span><small>${hm(x.t)} · 탄${N(x.carb,1)} 단${N(x.protein,1)} 지${N(x.fat,1)}g${lm===x?agoTag(x.t):''}</small></div><span class="num">${N(x.kcal)} kcal</span>${del('f',x.id)}</div>`).join('') : `<p class="empty">아직 먹은 기록이 없어요.${lm?agoTag(lm.t):''}</p>`;
   const memoList = S.notes.filter(n=>n.date>=nextDate(d.id,-1)).slice(0,30);
   h += `<div class="sec">메모·일정</div>` + (memoList.length ? memoList.map(n=>`<div class="list-item"><div class="grow">${esc(n.text)}<small>${relDay(n.date)} · ${n.date.slice(5).replace('-','/')}</small></div><button class="del" data-note="${n.id}" aria-label="메모 삭제"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>`).join('') : '<p class="empty">채팅으로 "오늘 저녁 회식 있어"처럼 말하면 메모돼요. AI는 어제·오늘·내일 메모를 감안해 조언해요.</p>');
   const hasM = d.weightAM || d.bodyFat;
@@ -1505,7 +1515,7 @@ function fillSettings(){
 }
 // 테마: 청녹(원래) / 주청(하늘·주황). 고르면 바로 바뀜
 function applyTheme(){ document.body.classList.toggle('theme-jc', S.settings.theme==='jc'); renderBadge(); }
-$('#f_theme').addEventListener('change', e=>{ S.settings.theme=e.target.value; save(); applyTheme(); });
+$('#f_theme').addEventListener('change', e=>{ S.settings.theme=e.target.value; save(); applyTheme(); renderChat(); });   // 주간 리포트 그래프 색도 테마에 맞춰 다시 그림
 $('#btnSettings').addEventListener('click', ()=>{ fillSettings(); resetArm=false; $('#resetAll').textContent='전체 초기화'; $('#resetAll').classList.remove('armed'); openSheet('#setSheet'); });
 $('#saveProfile').addEventListener('click', ()=>{
   const v=id=>$(id).value.trim();
