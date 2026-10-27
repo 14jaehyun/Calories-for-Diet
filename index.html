@@ -59,7 +59,8 @@ header h1 small{display:block;font-size:12px;font-weight:450;color:var(--sub);ma
 .pos{color:var(--warm)!important}.neg{color:var(--blue)!important}
 /* 기록 화면 오늘 요약 3칸: 작은 쪽 + 칼로리 적자/흑자 = 큰 쪽.
    적자면 윗줄 긴 소모 칸, 아랫줄 섭취 + 적자 / 흑자면 윗줄 소모 + 흑자, 아랫줄 긴 섭취 칸.
-   한 줄에 둘이 있으면 실제 숫자 비율로 폭을 나누되, 글자가 들어갈 최소 폭(120px)은 지킴 */
+   한 줄에 둘이 있으면 실제 숫자 비율로 폭을 나누되, 글자가 들어갈 최소 폭(120px)은 지킴
+   섭취 칸만 최소 폭 = 실제 글자 폭 + 좌우 여백 (0일 때 가장 좁고 자릿수만큼 넓어짐, v1.6.0) */
 .d-sum{display:flex;flex-direction:column;gap:8px;margin-top:4px}
 .d-row{display:flex;gap:8px}
 .d-box{position:relative;min-width:120px;border-radius:12px;padding:6px 11px 5px;background:#F2F2F2;border:1px solid #D9D9D9}
@@ -67,7 +68,7 @@ header h1 small{display:block;font-size:12px;font-weight:450;color:var(--sub);ma
 .d-box b{display:block;font-size:18px;font-weight:650;margin-top:1px;white-space:nowrap}
 .d-box small{font-size:12px;font-weight:400}
 .d-box .s-label,.d-box small{color:inherit}            /* 칸 안의 글자는 칸 색을 따라감 */
-.d-box.in{color:#4F6D8A}
+.d-box.in{color:#4F6D8A;min-width:max-content}
 .d-box.diff{background:#4F6D8A;border-color:#4F6D8A;color:#fff}
 .d-exp{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:16px;font-weight:700;color:#4F6D8A;white-space:nowrap}
 
@@ -381,7 +382,7 @@ body.theme-jc{--jb:#1F6F9E;--jb2:#2477A8;--jc:#E8573A;--jcl:#F4A894}
 /* ============ 저장소 ============ */
 const LS = 'dietnote.v1';
 const APP_NAME = 'Bite with me!';
-const APP_VERSION = 'v1.5.9';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
+const APP_VERSION = 'v1.6.0';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
 const DEFAULT_MODEL = 'gemini-flash-latest';
 const KCAL_PER_KG = 7700;
 const NEW_DAY_HOUR = 4;               // 이 시각 이전은 전날로 취급
@@ -457,15 +458,30 @@ function stepsCalendar(d){
     else if (s.t<st) preMax[c]=Math.max(preMax[c]||0, s.count); }
   let tot=0; for (const c in inMax) tot += Math.max(0, inMax[c]-(preMax[c]||0)); return tot;
 }
+// 소화대사량(식이성 발열효과): 먹은 음식을 소화·처리하는 데 쓰는 칼로리 (v1.6.0)
+// 영양소별 비율 — 단백질 25%, 탄수화물 7%, 지방 2%, 알코올 15%
+// 탄단지·알코올 구성비로 비율을 구하고 그 음식의 kcal에 곱함 (구성 합이 kcal과 조금 달라도 kcal 기준으로 맞춰짐)
+// 탄단지·알코올 정보가 없는 항목은 kcal의 10%
+// 술인데 단×4+탄×4+지×9+알×7이 kcal보다 15% 넘게 크면 알코올 칼로리가 탄수에 섞여 적힌 것으로 보고 탄수를 다시 계산
+const DIGEST_FROM = '2026-10-26';   // 이 날짜부터 소모에 포함 (지난주 주간 리포트 숫자는 그대로)
+function digestKcal(x){
+  const K=+x.kcal||0; if (K<=0) return 0;
+  const P=(+x.protein||0)*4, F=(+x.fat||0)*9, A=(+x.alcohol||0)*7; let C=(+x.carb||0)*4;
+  if (A>0 && P+C+F+A > K*1.15) C = Math.max(0, K-P-F-A);
+  const T=P+C+F+A; if (T<=0) return K*0.10;
+  return K * (P*0.25 + C*0.07 + F*0.02 + A*0.15) / T;
+}
 function summarize(d){
   const w = d.weightAM || latestWeightBefore(d) || S.profile.weight;
   const f = d.foods.reduce((a,x)=>({k:a.k+(+x.kcal||0),c:a.c+(+x.carb||0),p:a.p+(+x.protein||0),f:a.f+(+x.fat||0)}),{k:0,c:0,p:0,f:0});
   const ex = d.exercises.reduce((a,x)=>a+(+x.kcal||0),0);
   const steps = stepsForDay(d), stepKcal = Math.round(steps*kcalPerStep(w));
   const bmr = d.bmr || calcBMR(w) || 0;
-  const burn = bmr + stepKcal + ex, surplus = Math.round(f.k - burn);
+  const alcohol = d.foods.reduce((a,x)=>a+(+x.alcohol||0),0);
+  const digest = d.id>=DIGEST_FROM ? Math.round(d.foods.reduce((a,x)=>a+digestKcal(x),0)) : 0;
+  const burn = bmr + digest + stepKcal + ex, surplus = Math.round(f.k - burn);
   const tk = d.targetKcal || S.profile.targetKcal || 0, tp = d.targetProtein || S.profile.targetProtein || 0;
-  return { intake:Math.round(f.k), carb:r1(f.c), protein:r1(f.p), fat:r1(f.f), ex:Math.round(ex), steps, stepKcal, bmr,
+  return { intake:Math.round(f.k), carb:r1(f.c), protein:r1(f.p), fat:r1(f.f), alcohol:r1(alcohol), digest, ex:Math.round(ex), steps, stepKcal, bmr,
     burn:Math.round(burn), surplus, expKg: surplus/KCAL_PER_KG, tk, tp, remain: tk-Math.round(f.k), protRemain: r1(tp-f.p), weight:w };
 }
 function latestWeightBefore(d){ let p=prevDay(d); while(p){ if(p.weightAM) return p.weightAM; p=prevDay(p);} return null; }
@@ -682,7 +698,7 @@ const SCHEMA = {
   properties:{
     reply:{type:'STRING'},
     foods:{type:'ARRAY', items:{type:'OBJECT', properties:{
-      name:{type:'STRING'}, amount:{type:'STRING'}, kcal:{type:'NUMBER'}, carb:{type:'NUMBER'}, protein:{type:'NUMBER'}, fat:{type:'NUMBER'}
+      name:{type:'STRING'}, amount:{type:'STRING'}, kcal:{type:'NUMBER'}, carb:{type:'NUMBER'}, protein:{type:'NUMBER'}, fat:{type:'NUMBER'}, alcohol:{type:'NUMBER'}
     }, required:['name','amount','kcal','carb','protein','fat']}},
     exercises:{type:'ARRAY', items:{type:'OBJECT', properties:{
       name:{type:'STRING'}, amount:{type:'STRING'}, kcal:{type:'NUMBER'}
@@ -705,8 +721,8 @@ function context(){
   const ctx = { 현재시각:`${ymd(now)} ${hm(now)}`, 프로필:{만나이:curAge(), 생년월일:p.birth, 성별:p.sex==='female'?'여성':'남성', 키cm:p.height, 몸무게kg:p.weight, 목표섭취kcal:p.targetKcal, 목표단백질g:p.targetProtein} };
   if (d) { const s=summarize(d);
     ctx.오늘 = { 날짜:d.id, 기상:hm(d.wakeAt), 공복체중:d.weightAM, 체지방률:d.bodyFat,
-      기초대사량kcal:s.bmr, 누적걸음:s.steps, 걸음소모kcal:s.stepKcal, 걸음당kcal:Math.round(kcalPerStep(s.weight)*1000)/1000,
-      운동소모kcal:s.ex, 총소모kcal:s.burn, 섭취kcal:s.intake, 탄수g:s.carb, 단백질g:s.protein, 지방g:s.fat,
+      기초대사량kcal:s.bmr, 소화대사량kcal:s.digest, 누적걸음:s.steps, 걸음소모kcal:s.stepKcal, 걸음당kcal:Math.round(kcalPerStep(s.weight)*1000)/1000,
+      운동소모kcal:s.ex, 총소모kcal:s.burn, 섭취kcal:s.intake, 탄수g:s.carb, 단백질g:s.protein, 지방g:s.fat, 알코올g:s.alcohol,
       남은섭취kcal:s.remain, 남은단백질g:s.protRemain, 잉여결핍kcal:s.surplus, 예상체중변화kg:Math.round(s.expKg*100)/100,
       먹은음식:d.foods.map(x=>`${hm(x.t)} ${x.name} ${x.amount||''} ${x.kcal}kcal`),
       운동:d.exercises.map(x=>`${hm(x.t)} ${x.name} ${x.kcal}kcal`) };
@@ -740,7 +756,8 @@ function systemPrompt(){
 - 실제 기록은 오직 foods·exercises·others 배열에 넣은 것만 저장된다. reply에 "기록했어요"라고 썼다면 같은 항목이 반드시 배열에 들어 있어야 하고, reply에 쓴 칼로리 숫자와 배열의 kcal 숫자가 같아야 한다.
 
 [배열 작성법]
-- foods: 음식 하나당 하나. name(음식명), amount(양 표기), kcal, carb, protein, fat(g, 소수 1자리). 모두 숫자. 한국 식당·가정식 일반 1인분 또는 사용자가 말한 중량 기준으로 현실적으로 추정한다. 조리법이 불분명하면 흔한 방식으로 가정하고 reply에 짧게 밝힌다.
+- foods: 음식 하나당 하나. name(음식명), amount(양 표기), kcal, carb, protein, fat(g, 소수 1자리), alcohol(g, 소수 1자리). 모두 숫자.
+- 술(소주·맥주·막걸리·와인·하이볼·칵테일 등)은 알코올 양을 alcohol에 따로 적는다(양ml × 도수 × 0.79). carb에는 실제 당·탄수화물만 넣고 알코올 칼로리를 탄수화물로 뭉뚱그리지 않는다. kcal은 단백질×4 + 탄수×4 + 지방×9 + 알코올×7에 맞춘다. 술이 아닌 음식은 alcohol 0. 한국 식당·가정식 일반 1인분 또는 사용자가 말한 중량 기준으로 현실적으로 추정한다. 조리법이 불분명하면 흔한 방식으로 가정하고 reply에 짧게 밝힌다.
 - exercises: 운동이나 일상 걸음 외의 특별한 신체활동. name, amount(시간/세트 등, 모르면 일반적인 1회 기준으로 가정), kcal(숫자, 0 금지) = 사용자 체중 기준 MET로 계산한 소모량에서 같은 시간의 기초대사량분을 뺀 순증가분. 걷기·산책은 걸음수로 이미 계산되므로 기록하지 말고 그렇게 안내한다. 달리기·등산처럼 걸음수에 잡히는 운동은 (예상 걸음 × 걸음당kcal)을 뺀 추가분만 넣는다.
 - others: type=weight(value=kg, 공복 몸무게), bodyfat(value=%), steps(value=오늘 누적 걸음수), wake(기상, 시각을 말하면 time=HH:MM 24시간제), sleep(취침), undo(기록 취소, target=food|exercise|빈값, text=지울 항목 이름을 현황 데이터 목록에 있는 그대로. "방금 거"처럼 이름을 특정할 수 없으면 text는 비움), profile(생년월일·키·몸무게·성별·목표섭취칼로리·목표단백질 변경 요청 시 바뀌는 항목만, birth는 YYYY-MM-DD, target_kcal·target_protein 사용).
 
@@ -772,7 +789,7 @@ function systemPrompt(){
 - 느낌표(!)를 문장마다 기계적으로 붙이지 않는다. 정말 힘을 줄 때만 가끔 쓴다. 이모지는 쓰지 않는다.
 - 기록했으면 무엇을 몇 kcal로 기록했는지와 추정 근거를 알려준다. 오늘 합계·남은 칼로리·단백질은 화면 위 현황 카드에 나오니 쓰지 않는다.
 - 질문에는 아래 현황 데이터로 계산한 구체적 숫자로 답한다. "지금 라면 먹으면?" 같은 가정은 그 음식 추정치, 먹은 뒤 남는 섭취 칼로리, 오늘 잉여/결핍 변화, 예상 체중 영향(7,700kcal=1kg)을 계산해 알려준다.
-- 소모 칼로리 = 기초대사량 + 걸음 소모 + 운동 소모. 잉여/결핍 = 섭취 − 소모.
+- 소모 칼로리 = 기초대사량 + 소화대사량 + 걸음 소모 + 운동 소모. 소화대사량은 먹은 음식을 소화하는 데 쓰는 칼로리로, 앱이 탄단지·알코올 기록으로 계산한다(단백질 25%, 탄수 7%, 지방 2%, 알코올 15%). 잉여/결핍 = 섭취 − 소모.
 - 의학적 진단이나 극단적 절식 권유는 하지 않는다.
 - 특정 제품·브랜드·식당 메뉴의 영양성분, 최신 정보처럼 확실히 알지 못하는 사실은 Google 검색 도구로 찾아보고 그 결과를 근거로 답한다. 일반적인 음식이나 이미 확실히 아는 내용은 검색하지 않아도 된다. 검색으로 찾은 값을 쓸 때는 reply에 짧게 밝힌다.
 
@@ -828,7 +845,7 @@ async function askGemini(userText, note, modelOverride, img){
   return { reply:String(j.reply||''), actions, src:sourcesOf(meta.gm) };
 }
 const searchLevel = new Map();
-const JSON_ONLY = `\n\n[응답 형식] 반드시 JSON 객체 하나만 출력한다. 코드블록·설명 문장 없이 { 로 시작해 } 로 끝낸다. 키: reply(문자열), foods(배열: name, amount, kcal, carb, protein, fat), exercises(배열: name, amount, kcal), others(배열: type과 필요한 값). 기록할 것이 없으면 빈 배열.`;
+const JSON_ONLY = `\n\n[응답 형식] 반드시 JSON 객체 하나만 출력한다. 코드블록·설명 문장 없이 { 로 시작해 } 로 끝낸다. 키: reply(문자열), foods(배열: name, amount, kcal, carb, protein, fat, alcohol), exercises(배열: name, amount, kcal), others(배열: type과 필요한 값). 기록할 것이 없으면 빈 배열.`;
 // 응답에서 JSON만 꺼냄 (앞뒤에 다른 글이나 코드블록이 붙어도)
 function parseJSON(raw){ const t=String(raw||'').replace(/^```(json)?|```$/g,'').trim();
   try { return JSON.parse(t); } catch(_) {}
@@ -938,6 +955,7 @@ function applyActions(actions){
     switch(a.type){
       case 'food': { const d=ensureDay(); const k=num(a.kcal)>0?num(a.kcal):(num(a.value)||0);
         const x={id:uid(), t, name:a.name||'음식', amount:a.amount||'', kcal:Math.round(k), carb:r1(num(a.carb)||0), protein:r1(num(a.protein)||0), fat:r1(num(a.fat)||0)};
+        const alc=r1(num(a.alcohol)||0); if (alc>0) x.alcohol=alc;
         d.foods.push(x); recs.push({k:'섭취', ...x}); touched=true; break; }
       case 'exercise': { const d=ensureDay(); const k=num(a.kcal)>0?num(a.kcal):(num(a.value)||0);
         const x={id:uid(), t, name:a.name||'운동', amount:a.amount||'', kcal:Math.round(k)};
@@ -1289,7 +1307,7 @@ function renderChat(){
     const typing = TW.m===m;
     let inner = typing ? (TW.lines ? `<span class="tw-text tw-clip" style="height:${twHeight()}px">${twLinesHTML()}</span>` : `<span class="tw-text tw-measure">${esc(m.text)}</span>`) : esc(m.text);
     if (m.kind==='report' && S.reports[m.week]) inner = reportHTML(S.reports[m.week]) + inner;
-    if (m.recs && !typing) inner += `<div class="rec">` + m.recs.map(x=>`<div class="rec-item"><div class="rec-row"><span class="rn"><span class="tag">${x.k}</span>${esc(x.name)} <em>${esc(x.amount||'')}</em></span><span class="rk num">${N(x.kcal)} kcal</span></div>${x.k==='섭취'?`<div class="rec-m num">탄 ${N(x.carb,1)} · 단 ${N(x.protein,1)} · 지 ${N(x.fat,1)} g</div>`:''}</div>`).join('') + `</div>`;
+    if (m.recs && !typing) inner += `<div class="rec">` + m.recs.map(x=>`<div class="rec-item"><div class="rec-row"><span class="rn"><span class="tag">${x.k}</span>${esc(x.name)} <em>${esc(x.amount||'')}</em></span><span class="rk num">${N(x.kcal)} kcal</span></div>${x.k==='섭취'?`<div class="rec-m num">탄 ${N(x.carb,1)} · 단 ${N(x.protein,1)} · 지 ${N(x.fat,1)}${x.alcohol>0?` · 알 ${N(x.alcohol,1)}`:''} g</div>`:''}</div>`).join('') + `</div>`;
     if (m.src && !typing) inner += srcHTML(m.src);
     if (m.retry && i===S.chat.length-1) inner += `<button class="retry" data-retry="${i}">다시 보내기</button>`;
     html += m.role==='user'
@@ -1386,19 +1404,20 @@ function renderDaySheet(){
     ${summaryBoxes(s)}
     <div class="sec">소모 내역</div>
     <div class="list-item"><div class="grow">기초대사량<small>몸무게 ${N(s.weight,2)}kg 기준</small></div><span class="num">${N(s.bmr)} kcal</span></div>
+    ${d.id>=DIGEST_FROM?`<div class="list-item"><div class="grow">소화대사량<small>섭취 탄단지·알코올 기준</small></div><span class="num">${N(s.digest)} kcal</span></div>`:''}
     <div class="list-item pull" id="stepRow"><div class="grow">걸음 ${N(s.steps)}보<small>${S.steps.length? '마지막 갱신 '+hm(S.steps[S.steps.length-1].t):'아직 걸음 데이터 없음'}</small></div><span class="num">${N(s.stepKcal)} kcal</span></div>`;
   h += d.exercises.map(x=>`<div class="list-item"><div class="grow">${esc(x.name)}<small>${hm(x.t)} ${esc(x.amount||'')}</small></div><span class="num">${N(x.kcal)} kcal</span>${del('e',x.id)}</div>`).join('');
-  h += `<div class="sec">섭취 내역 · 탄 ${N(s.carb,1)} / 단 ${N(s.protein,1)} / 지 ${N(s.fat,1)} g</div>`;
+  h += `<div class="sec">섭취 내역 · 탄 ${N(s.carb,1)} / 단 ${N(s.protein,1)} / 지 ${N(s.fat,1)}${s.alcohol>0?` / 알 ${N(s.alcohol,1)}`:''} g</div>`;
   const lm=lastMeal();
-  h += d.foods.length ? d.foods.map(x=>`<div class="list-item"><div class="grow">${esc(x.name)} <span style="color:var(--sub)">${esc(x.amount||'')}</span><small>${hm(x.t)} · 탄${N(x.carb,1)} 단${N(x.protein,1)} 지${N(x.fat,1)}g${lm===x?agoTag(x.t):''}</small></div><span class="num">${N(x.kcal)} kcal</span>${del('f',x.id)}</div>`).join('') : `<p class="empty">아직 먹은 기록이 없어요.${lm?agoTag(lm.t):''}</p>`;
+  h += d.foods.length ? d.foods.map(x=>`<div class="list-item"><div class="grow">${esc(x.name)} <span style="color:var(--sub)">${esc(x.amount||'')}</span><small>${hm(x.t)} · 탄${N(x.carb,1)} 단${N(x.protein,1)} 지${N(x.fat,1)}${x.alcohol>0?` 알${N(x.alcohol,1)}`:''}g${lm===x?agoTag(x.t):''}</small></div><span class="num">${N(x.kcal)} kcal</span>${del('f',x.id)}</div>`).join('') : `<p class="empty">아직 먹은 기록이 없어요.${lm?agoTag(lm.t):''}</p>`;
   const memoList = S.notes.filter(n=>n.date>=nextDate(d.id,-1)).slice(0,30);
   h += `<div class="sec">메모·일정</div>` + (memoList.length ? memoList.map(n=>`<div class="list-item"><div class="grow">${esc(n.text)}<small>${relDay(n.date)} · ${n.date.slice(5).replace('-','/')}</small></div><button class="del" data-note="${n.id}" aria-label="메모 삭제"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>`).join('') : '<p class="empty">채팅으로 "오늘 저녁 회식 있어"처럼 말하면 메모돼요. AI는 어제·오늘·내일 메모를 감안해 조언해요.</p>');
   const hasM = d.weightAM || d.bodyFat;
   h += `<div class="sec">아침 측정</div><div class="list-item"><div class="grow">공복 몸무게 ${d.weightAM? d.weightAM.toFixed(2)+' kg':'-'} · 체지방률 ${d.bodyFat? d.bodyFat+'%':'-'}${hasM && d.weighAt? ` · ${hm(d.weighAt)}`:''}
     ${d.actualChange!=null?`<small>전일 대비 ${f2(d.actualChange)} kg${d.prevExpected!=null?` · 예상 ${f2(d.prevExpected)} kg`:''}</small>`:''}</div>${hasM? `<button class="del" data-morning aria-label="아침 측정 삭제"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>`:''}</div>`;
   const ids=sortedIds().reverse().slice(0,14);
-  h += `<div class="sec">최근 기록</div><div class="hist-wrap"><table class="hist num"><colgroup><col class="d"><col class="w"><col class="w"><col class="w"><col class="w"><col><col><col><col></colgroup><tr><th>날짜</th><th>섭취</th><th>소모</th><th>흑자/적자</th><th>체중</th><th>체지방</th><th>탄수</th><th>단백질</th><th>지방</th></tr>` +
-    ids.map(i=>{ const x=S.days[i], z=summarize(x); return `<tr><td>${i.slice(5).replace('-','/')}</td><td>${N(z.intake)}</td><td>${N(z.burn)}</td><td class="${z.surplus>0?'pos':'neg'}">${sgn(z.surplus)}</td><td>${x.weightAM?x.weightAM.toFixed(2):'-'}</td><td>${x.bodyFat?N(x.bodyFat,1)+'%':'-'}</td><td>${N(z.carb,1)}</td><td>${N(z.protein,1)}</td><td>${N(z.fat,1)}</td></tr>`; }).join('') + `</table></div>`;
+  h += `<div class="sec">최근 기록</div><div class="hist-wrap"><table class="hist num"><colgroup><col class="d"><col class="w"><col class="w"><col class="w"><col class="w"><col><col><col><col><col></colgroup><tr><th>날짜</th><th>섭취</th><th>소모</th><th>흑자/적자</th><th>체중</th><th>체지방</th><th>탄수</th><th>단백질</th><th>지방</th><th>알코올</th></tr>` +
+    ids.map(i=>{ const x=S.days[i], z=summarize(x); return `<tr><td>${i.slice(5).replace('-','/')}</td><td>${N(z.intake)}</td><td>${N(z.burn)}</td><td class="${z.surplus>0?'pos':'neg'}">${sgn(z.surplus)}</td><td>${x.weightAM?x.weightAM.toFixed(2):'-'}</td><td>${x.bodyFat?N(x.bodyFat,1)+'%':'-'}</td><td>${N(z.carb,1)}</td><td>${N(z.protein,1)}</td><td>${N(z.fat,1)}</td><td>${z.alcohol>0?N(z.alcohol,1):'-'}</td></tr>`; }).join('') + `</table></div>`;
   b.innerHTML=h;
   b.querySelectorAll('[data-note]').forEach(btn=>btn.addEventListener('click',()=>{
     const n=removeNote(btn.dataset.note); if(n){ logDelete('n', `'${n.text}' 메모`); render(); renderDaySheet(); }
@@ -1610,22 +1629,22 @@ async function exportExcel(){
   try { await loadXLSX(); } catch(e) { toast('엑셀 모듈을 불러오지 못했어요. 인터넷 연결을 확인해 주세요.'); return; }
   const ids=sortedIds();
   const daily=[['날짜','기상','취침','공복체중(kg)','체지방률(%)','전일대비 실제변화(kg)','전일 예상변화(kg)','예상-실제 차이(kg)',
-    '기초대사량(kcal)','걸음수','걸음 소모(kcal)','운동 소모(kcal)','총 소모(kcal)','섭취(kcal)','탄수화물(g)','단백질(g)','지방(g)',
+    '기초대사량(kcal)','소화대사량(kcal)','걸음수','걸음 소모(kcal)','운동 소모(kcal)','총 소모(kcal)','섭취(kcal)','탄수화물(g)','단백질(g)','지방(g)','알코올(g)',
     '목표 섭취(kcal)','목표 단백질(g)','잉여/결핍(kcal)','예상 체중변화(kg)']];
-  const foods=[['날짜','시각','음식','양','칼로리(kcal)','탄수화물(g)','단백질(g)','지방(g)']];
+  const foods=[['날짜','시각','음식','양','칼로리(kcal)','탄수화물(g)','단백질(g)','지방(g)','알코올(g)']];
   const exs=[['날짜','시각','활동','내용','소모(kcal)']];
   for (const i of ids){ const d=S.days[i], s=summarize(d);
     daily.push([i, hm(d.wakeAt), d.sleepAt?hm(d.sleepAt):'', d.weightAM??'', d.bodyFat??'', d.actualChange??'', d.prevExpected??'',
       (d.actualChange!=null&&d.prevExpected!=null)? Math.round((d.actualChange-d.prevExpected)*100)/100 : '',
-      s.bmr, s.steps, s.stepKcal, s.ex, s.burn, s.intake, s.carb, s.protein, s.fat, s.tk, s.tp, s.surplus, Math.round(s.expKg*1000)/1000]);
-    d.foods.forEach(x=>foods.push([i, hm(x.t), x.name, x.amount||'', x.kcal, x.carb, x.protein, x.fat]));
+      s.bmr, s.digest, s.steps, s.stepKcal, s.ex, s.burn, s.intake, s.carb, s.protein, s.fat, s.alcohol, s.tk, s.tp, s.surplus, Math.round(s.expKg*1000)/1000]);
+    d.foods.forEach(x=>foods.push([i, hm(x.t), x.name, x.amount||'', x.kcal, x.carb, x.protein, x.fat, x.alcohol||0]));
     d.exercises.forEach(x=>exs.push([i, hm(x.t), x.name, x.amount||'', x.kcal]));
   }
   const steps=[['받은 시각','걸음수','기준','해당 날짜']]; S.steps.forEach(s=>steps.push([`${ymd(s.t)} ${hm(s.t)}`, s.count, s.kind==='L'?'새벽 4시 기준':'0시 이후 누적', s.kind==='L'?s.day:ymd(s.t)]));
   const wb=XLSX.utils.book_new();
   const add=(rows,name,widths)=>{ const ws=XLSX.utils.aoa_to_sheet(rows); ws['!cols']=widths.map(w=>({wch:w})); XLSX.utils.book_append_sheet(wb, ws, name); };
-  add(daily,'일별요약',[11,7,7,11,10,14,13,13,12,8,11,11,11,10,10,9,8,12,12,12,13]);
-  add(foods,'섭취기록',[11,7,22,12,11,10,9,8]);
+  add(daily,'일별요약',[11,7,7,11,10,14,13,13,12,12,8,11,11,11,10,10,9,8,9,12,12,12,13]);
+  add(foods,'섭취기록',[11,7,22,12,11,10,9,8,9]);
   add(exs,'운동기록',[11,7,22,14,10]);
   add(steps,'걸음수',[17,10,14,12]);
   const memos=[['날짜','메모']]; S.notes.forEach(n=>memos.push([n.date, n.text])); add(memos,'메모',[12,40]);
