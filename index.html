@@ -382,7 +382,7 @@ body.theme-jc{--jb:#1F6F9E;--jb2:#2477A8;--jc:#E8573A;--jcl:#F4A894}
 /* ============ 저장소 ============ */
 const LS = 'dietnote.v1';
 const APP_NAME = 'Bite with me!';
-const APP_VERSION = 'v1.6.0';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
+const APP_VERSION = 'v1.6.1';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
 const DEFAULT_MODEL = 'gemini-flash-latest';
 const KCAL_PER_KG = 7700;
 const NEW_DAY_HOUR = 4;               // 이 시각 이전은 전날로 취급
@@ -1692,7 +1692,7 @@ function intro(){
 }
 const input=$('#input');
 input.addEventListener('input', ()=>{ input.style.height='auto'; input.style.height=Math.min(120,input.scrollHeight)+'px'; });
-input.addEventListener('keydown', e=>{ if(e.key==='Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); $('#composer').requestSubmit(); } });
+input.addEventListener('keydown', e=>{ if(e.key==='Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); $('#composer').requestSubmit(); input.blur(); } });  // 엔터 전송 시 키보드도 내리기 (v1.6.1)
 $('#composer').addEventListener('submit', e=>{ e.preventDefault(); const t=input.value; if((!t.trim()&&!PIMG)||busy) return; const img=PIMG; input.value=''; input.style.height='auto'; setPending(null); handle(t, img); });
 
 /* ============ 사진 첨부 (v1.4.0) ============
