@@ -438,7 +438,7 @@ body.theme-jc{--jb:#1F6F9E;--jb2:#2477A8;--jc:#E8573A;--jcl:#F4A894}
 /* ============ 저장소 ============ */
 const LS = 'dietnote.v1';
 const APP_NAME = 'Bite with me!';
-const APP_VERSION = 'v1.7.5';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
+const APP_VERSION = 'v1.7.3';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
 const DEFAULT_MODEL = 'gemini-flash-latest';
 const KCAL_PER_KG = 7700;
 const NEW_DAY_HOUR = 4;               // 이 시각 이전은 전날로 취급
@@ -682,31 +682,6 @@ function undoLast(target){
 }
 // 채팅으로 특정 기록 취소: "아까 라면 취소해줘" → AI가 지울 항목 이름(text)을 넘기면 오늘 기록에서 그 이름을 찾아 지움
 // 이름이 없으면 마지막 기록을 지움. 못 찾으면 지우지 않고 그대로 알림 (실제로 안 지워졌는데 지웠다고 하지 않도록)
-// 기록 그 자리에서 고치기 (v1.7.4): 시각·순서·번호는 그대로, 받은 값만 바꿈. 저장함 값으로 덮어쓰지 않음
-function editNamed(a){
-  const d = S.cur && S.days[S.cur]; if(!d) return '고칠 기록이 없어요.';
-  const key = nsp(a.text||a.target||a.name); if (!key) return '어느 기록을 고칠지 찾지 못했어요.';
-  const tm = String(a.time||'').match(/^(\d{1,2}):(\d{2})$/);
-  let best=null;
-  for (const [k,arr] of [['f',d.foods],['e',d.exercises]]) arr.forEach(x=>{ const n=nsp(x.name);
-    const score = n===key ? 3 : (n.includes(key)||key.includes(n)) ? 2 : 0; if (!score) return;
-    const dt = tm ? Math.abs((new Date(x.t).getHours()*60+new Date(x.t).getMinutes()) - (+tm[1]*60+ +tm[2])) : -x.t;
-    if (!best || score>best.score || (score===best.score && dt<best.dt)) best={k,x,score,dt}; });
-  if (!best) return `"${a.text||a.name||''}" 기록을 찾지 못해서 고치지 못했어요.`;
-  const x=best.x, before=x.kcal, has=v=>v!==undefined && v!==null && v!=='' && isFinite(num(v));
-  if (a.name && String(a.name).trim()) x.name=String(a.name).trim();
-  const newAmt = a.amount!=null && String(a.amount).trim() ? String(a.amount).trim() : null;
-  if (best.k==='f' && newAmt && !has(a.kcal)) {   // 양만 받았으면 단위가 같을 때 비율로
-    const o=splitAmt(x.amount), n=splitAmt(newAmt);
-    if (o.qty>0 && n.qty>0 && (o.unit||'').trim()===(n.unit||'').trim()) { const k=n.qty/o.qty;
-      x.kcal=Math.round(x.kcal*k); x.carb=r1((x.carb||0)*k); x.protein=r1((x.protein||0)*k); x.fat=r1((x.fat||0)*k); if (x.alcohol) x.alcohol=r1(x.alcohol*k); }
-  }
-  if (newAmt) x.amount=newAmt;
-  if (has(a.kcal)) x.kcal=Math.round(num(a.kcal));
-  if (best.k==='f') { for (const f of ['carb','protein','fat']) if (has(a[f])) x[f]=r1(num(a[f]));
-    if (has(a.alcohol)) { const al=r1(num(a.alcohol)); if (al>0) x.alcohol=al; else delete x.alcohol; } }
-  return `"${x.name}" 기록을 고쳤어요 (${N(before)} → ${N(x.kcal)}kcal).`;
-}
 function undoNamed(target, name){
   const d = S.cur && S.days[S.cur]; if(!d) return '취소할 기록이 없어요.';
   const key = String(name||'').replace(/\s+/g,'').toLowerCase();
@@ -789,9 +764,8 @@ const SCHEMA = {
       ref:{type:'STRING'}, name:{type:'STRING'}, amount:{type:'STRING'}, kcal:{type:'NUMBER'}, carb:{type:'NUMBER'}, protein:{type:'NUMBER'}, fat:{type:'NUMBER'}, alcohol:{type:'NUMBER'}
     }, required:['name']}},
     others:{type:'ARRAY', items:{type:'OBJECT', properties:{
-      type:{type:'STRING', enum:['profile','weight','bodyfat','steps','wake','sleep','undo','edit','note','note_remove']},
+      type:{type:'STRING', enum:['profile','weight','bodyfat','steps','wake','sleep','undo','note','note_remove']},
       text:{type:'STRING'}, date:{type:'STRING'}, time:{type:'STRING'},
-      name:{type:'STRING'}, amount:{type:'STRING'}, kcal:{type:'NUMBER'}, carb:{type:'NUMBER'}, protein:{type:'NUMBER'}, fat:{type:'NUMBER'}, alcohol:{type:'NUMBER'},
       value:{type:'NUMBER'}, target:{type:'STRING'},
       birth:{type:'STRING'}, age:{type:'NUMBER'}, height:{type:'NUMBER'}, weight:{type:'NUMBER'}, sex:{type:'STRING', enum:['male','female']},
       target_kcal:{type:'NUMBER'}, target_protein:{type:'NUMBER'}
@@ -838,8 +812,7 @@ function systemPrompt(){
 - "먹으면?", "먹어도 돼?", "얼마야?", "어때?", "할까?", "~하려고" 같은 질문·가정·계획은 절대 기록하지 않는다. foods·exercises·others는 빈 배열, reply로만 답한다.
 - 애매하면 기록하지 말고 reply에서 "기록할까요?"라고 묻는다.
 - 취소·삭제 요청("라면 취소해줘", "아까 그거 빼줘", "방금 거 지워")은 현황 데이터의 먹은음식·운동 목록에서 해당 항목을 찾아 others에 undo로 넣는다. 여러 개면 항목마다 하나씩 넣는다.
-- 이미 기록한 항목을 고치는 요청(수정해, 고쳐, 덮어씌워, 업데이트해, 바꿔, 정정해, "라면 반만 먹었어", "아까 치킨 3조각이었어", 영양성분표를 새로 주며 이걸로 고쳐 등)은 undo로 지우거나 foods에 새로 넣지 않는다. others에 type=edit 하나로 넣는다: text=고칠 항목 이름(현황 먹은음식·운동 목록에 있는 그대로), time=같은 이름이 여럿일 때 그 항목의 시각(HH:MM, 모르면 비움), 그리고 바뀐 뒤의 값 — amount, kcal, carb, protein, fat, alcohol(음식은 고치지 않는 값도 현재값으로 모두 채운다), 이름도 바꿀 때만 name. 앱이 기존 기록의 시각은 그대로 두고 숫자만 바꾼다. 결과("고쳤어요"/"찾지 못했어요")는 앱이 덧붙이니 reply에서 단정하지 않는다.
-- 저장함에 저장된 값은 대화로 고치지 않는다. 저장함 값을 고쳐 달라고 하면 edit나 saves를 넣지 말고, 저장함에서 지우고 다시 저장해 달라고 reply로 안내한다. 오늘 기록과 저장함을 함께 고쳐 달라고 하면 오늘 기록만 edit로 고치고 저장함은 그렇게 안내한다.
+- 양·칼로리를 고치는 요청("라면 반만 먹었어", "아까 치킨 3조각이었어")은 기존 항목을 undo로 지우고 고친 항목을 foods/exercises에 새로 넣는다.
 - 취소 결과("취소했어요" 또는 "찾지 못했어요")는 앱이 실제 처리 결과를 답변 끝에 덧붙인다. reply에서 취소했다고 단정하지 않는다.
 - 저장함 저장 요청("라면 저장해줘", "이거 저장해 둬")은 saves에 넣는다. 저장은 기록이 아니다. 먹었다는 말이 없으면 foods에 넣지 않는다.
   · 오늘 먹은음식 목록에 있는 음식이면 ref에 목록의 음식 이름을 그대로 적고 name도 같게 적는다. 값은 앱이 기록에서 그대로 복사한다.
@@ -939,26 +912,10 @@ async function askGemini(userText, note, modelOverride, img){
     ...arr(j.others),
     ...arr(j.actions)                      // 예전 형식 응답도 허용
   ];
-  fixEdits(actions);
   return { reply:String(j.reply||''), actions, src:sourcesOf(meta.gm) };
 }
-// edit 값이 다른 모양으로 와도 받기 (v1.7.5): 안쪽 객체는 펼치고, 한글 키는 바꾸고,
-// 숫자 없이 edit만 오고 같은 이름의 음식이 foods로 따로 왔으면 그 값을 edit로 옮기고 foods에서는 뺌(중복 기록 방지)
-const EDIT_KEYS = {칼로리:'kcal',열량:'kcal',calories:'kcal',calorie:'kcal',탄수화물:'carb',탄수:'carb',carbs:'carb',carbohydrate:'carb',단백질:'protein',proteins:'protein',지방:'fat',fats:'fat',알코올:'alcohol',양:'amount',섭취량:'amount',이름:'name'};
-const EDIT_VALS = ['amount','kcal','carb','protein','fat','alcohol'];
-function fixEdits(actions){
-  for (const a of actions) if (a.type==='edit') {
-    for (const k of Object.keys(a)) if (a[k] && typeof a[k]==='object' && !Array.isArray(a[k])) { for (const [kk,vv] of Object.entries(a[k])) if (a[kk]==null) a[kk]=vv; }
-    for (const [ko,en] of Object.entries(EDIT_KEYS)) if (a[ko]!=null && a[en]==null) a[en]=a[ko];
-    if (!EDIT_VALS.some(k=>a[k]!=null && String(a[k]).trim()!=='')) {
-      const key=nsp(a.text||a.target||a.name);
-      const i=actions.findIndex(f=>f.type==='food' && key && (nsp(f.name)===key || nsp(f.name).includes(key) || key.includes(nsp(f.name))));
-      if (i>=0) { const f=actions[i]; for (const k of EDIT_VALS) if (f[k]!=null) a[k]=f[k]; actions.splice(i,1); }
-    }
-  }
-}
 const searchLevel = new Map();
-const JSON_ONLY = `\n\n[응답 형식] 반드시 JSON 객체 하나만 출력한다. 코드블록·설명 문장 없이 { 로 시작해 } 로 끝낸다. 키: reply(문자열), foods(배열: name, amount, kcal, carb, protein, fat, alcohol, box, box_ratio), exercises(배열: name, amount, kcal), saves(배열: ref, name, amount, kcal, carb, protein, fat, alcohol), others(배열: type과 필요한 값. type=edit는 text, time, name, amount, kcal, carb, protein, fat, alcohol을 같은 객체 안에 바로 넣는다). 기록할 것이 없으면 빈 배열.`;
+const JSON_ONLY = `\n\n[응답 형식] 반드시 JSON 객체 하나만 출력한다. 코드블록·설명 문장 없이 { 로 시작해 } 로 끝낸다. 키: reply(문자열), foods(배열: name, amount, kcal, carb, protein, fat, alcohol, box, box_ratio), exercises(배열: name, amount, kcal), saves(배열: ref, name, amount, kcal, carb, protein, fat, alcohol), others(배열: type과 필요한 값). 기록할 것이 없으면 빈 배열.`;
 // 응답에서 JSON만 꺼냄 (앞뒤에 다른 글이나 코드블록이 붙어도)
 function parseJSON(raw){ const t=String(raw||'').replace(/^```(json)?|```$/g,'').trim();
   try { return JSON.parse(t); } catch(_) {}
@@ -1065,12 +1022,9 @@ function recordProblem(r){
   // 저장함 값으로 기록했다고 했는데 앱이 인정할 저장함 항목이 없거나, 글에 없는 저장함 항목을 붙였으면 다시
   const fd = r.actions.filter(a=>a.type==='food');
   if (fd.some(a=>a.box && !boxFor(a))) return 'box';
-  if (/저장함[^.\n?!]{0,8}값으?로[^.\n?!]{0,8}기록/.test(r.reply) && !fd.some(a=>boxFor(a))) return 'box';
+  if (/저장함[^.\n?!]{0,8}값/.test(r.reply) && !fd.some(a=>boxFor(a))) return 'box';
   if (items.some(a=>!(num(a.kcal)>0) && !(num(a.value)>0) && !/물|water|블랙커피|아메리카노|제로/i.test(a.name||''))) return 'kcal';
   if (!r.actions.length && /기록(했|하였|해 ?(두|드)|완료|됐|되었)/.test(r.reply) && !/기록(할|해 ?(드릴|둘|둘|드려도|둬도))[^.!?\n]{0,6}(까요|래요|할게요\?)/.test(r.reply)) return 'missing';
-  if (r.actions.some(a=>a.type==='edit' && !EDIT_VALS.some(k=>a[k]!=null && String(a[k]).trim()!=='') && !(a.name && String(a.name).trim()))) return 'edit';
-  // 고쳤다고 말했는데 edit 항목이 없으면 실제로는 안 고쳐진 것
-  if (!r.actions.some(a=>a.type==='edit'||a.type==='undo') && /(수정|업데이트|정정|변경)(했|하였|해 ?드렸|됐|되었|완료)|고쳤|고쳐 ?(드렸|놨|뒀)|바꿨|바꿔 ?(드렸|놨|뒀)|덮어(썼|씌웠)/.test(r.reply)) return 'edit';
   // 취소·삭제했다고 말했는데 undo 항목이 없으면 실제로는 안 지워진 것
   if (!r.actions.some(a=>a.type==='undo') && /(취소|삭제)(했|하였|해 ?드렸|됐|되었|완료)|지웠|지워 ?(드렸|놨|뒀)|뺐어|빼 ?드렸/.test(r.reply)) return 'undo';
   return null;
@@ -1106,7 +1060,6 @@ function applyActions(actions){
         notes.push(tm ? setWakeTime(+tm[1], +tm[2]) : wakeUp().text); break; }
       case 'sleep': notes.push(goSleep().text); break;
       case 'undo': notes.push(undoNamed(a.target, a.text)); touched=true; break;
-      case 'edit': notes.push(editNamed(a)); touched=true; break;
       case 'save': { const d=ensureDay(); const key=String(a.ref||a.name||'').trim(); const fs=d?[...d.foods].reverse():[];
         const f = key && (fs.find(x=>x.name===key) || fs.find(x=>x.name.includes(key)||key.includes(x.name)));
         if (f) notes.push(boxAdd(f) ? `저장함에 '${f.name}' 저장했어요.` : `'${f.name}'은 이미 저장함에 있어요.`);
@@ -1227,8 +1180,6 @@ async function runAI(text, img){
     if (prob) {
       const note = prob==='kcal'
         ? '직전 응답에서 foods/exercises 항목의 kcal이 비어 있거나 0이었다. 같은 내용을 kcal 숫자를 반드시 채워 다시 응답하라.'
-        : prob==='edit'
-        ? '직전 응답에서 기록을 고쳤다고 썼지만 others에 edit 항목이 없거나 edit 안에 바뀐 값이 없어서 실제로는 바뀌지 않았다. others에 type=edit(text=현황 목록의 항목 이름 그대로, 필요하면 time, 바뀐 뒤의 amount·kcal·carb·protein·fat·alcohol)를 넣어 다시 응답하라.'
         : prob==='box'
         ? '직전 응답에서 저장함 항목을 잘못 썼다. 저장함 값은 사용자 글에 저장함목록의 이름이 그대로 들어 있을 때만 쓴다(box에 그 이름을 정확히). 줄여 쓰거나 비슷하기만 하면 box를 비우고 평소처럼 추정하며, reply에서 저장함 값으로 기록했다는 말을 빼고 다시 응답하라.'
         : prob==='undo'
