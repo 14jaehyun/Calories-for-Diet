@@ -196,6 +196,19 @@ table.hist th:first-child,table.hist td:first-child{text-align:left}
 @keyframes tick{0%{opacity:1}50%{opacity:0}}
 /* 섭취 내역 항목 탭 선택 → 소제목 탄단지 자리에 선택 합계 (v1.6.2) */
 .list-item.fsel{background:var(--soft);margin:0 -16px;padding-left:16px;padding-right:16px}
+/* 선택 모드 (v1.7.0): 목록이 오른쪽으로 밀리며 앞에 책갈피, ×는 화면 밖으로 */
+.list-item.food{display:block;padding:0;overflow:hidden}
+.list-item.food.fsel{padding:0 16px}
+.list-item.food .fi{display:flex;align-items:center;gap:8px;padding:9px 0;width:calc(100% + 38px);transform:translateX(-38px);transition:transform .32s cubic-bezier(.25,.8,.25,1)}
+.fmode .list-item.food .fi{transform:none}
+.bm{flex:none;width:30px;height:30px;display:grid;place-items:center;color:var(--faint);opacity:0;transition:opacity .25s ease .05s}
+.fmode .bm{opacity:1}
+.bm svg{width:15px;height:17px}
+.bm.on{color:var(--blue)}.bm.on svg{fill:currentColor}
+.list-item.food .del{transition:opacity .2s}
+.fmode .list-item.food .del{opacity:0;pointer-events:none}
+/* × 두 번 누르기: 한 번 누르면 빨간 '삭제' (v1.7.0) */
+.del.armed{width:auto;padding:0 10px;background:#E24B4A!important;color:#fff!important;font-size:13px;font-weight:600}
 /* 선택 합계: 밝은 빛줄기가 3초마다 글자 위를 훑고 지나감 (v1.6.3) */
 .selsum{--shA:var(--sub);--shB:#e9eef3;display:inline-block;background-image:linear-gradient(100deg,var(--shA) 40%,var(--shB) 50%,var(--shA) 60%);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;animation:selsweep 3s ease-in-out infinite}
 .theme-jc .selsum{--shA:var(--jc);--shB:#FFE0D6}
@@ -274,6 +287,32 @@ body.theme-jc{--jb:#1F6F9E;--jb2:#2477A8;--jc:#E8573A;--jcl:#F4A894}
 .theme-jc .list-item,.theme-jc .list-item span,.theme-jc table.hist td,.theme-jc .s-label{color:var(--jb)}
 .theme-jc .list-item small,.theme-jc table.hist th{color:#84B0CA}   /* 청녹의 --sub 자리: 시간·탄단지·마지막 갱신 등 보조 줄 */
 .theme-jc .del,.theme-jc .empty{color:#A9C6D8}                      /* 청녹의 --faint 자리: × 버튼, 빈 기록 안내 */
+.theme-jc .bm{color:#A9C6D8}.theme-jc .bm.on{color:var(--jb)}
+/* 저장함 (v1.7.0) — 입력창 줄을 위로 쓸어 올리면 손가락을 따라 올라옴 */
+#boxSheet{position:fixed;inset:0;z-index:12}
+#boxSheet .bx-bg{position:absolute;inset:0;background:rgba(31,42,55,.28)}
+#boxSheet .bx{position:absolute;left:0;right:0;bottom:0;height:70dvh;background:#fff;border-radius:18px 18px 0 0;display:flex;flex-direction:column;will-change:transform;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+#boxSheet .grab{width:36px;height:5px;border-radius:3px;background:#d5dce3;margin:8px auto 6px;flex:none}
+.bx-list{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 16px}
+.bx-r{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+.bx-tg{flex:none;width:34px;height:34px;margin:0 -6px;display:grid;place-items:center}
+.bx-tg i{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--faint);display:grid;place-items:center}
+.bx-tg.on i{background:var(--blue);border-color:var(--blue)}
+.bx-tg.on i::after{content:'';width:6px;height:10px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg) translate(-1px,-1px)}
+.bx-b{flex:1;min-width:0}
+.bx-l1{display:flex;align-items:baseline;gap:6px;font-size:14px;color:var(--ink)}
+.bx-nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bx-am{color:var(--blue2);white-space:nowrap}
+.bx-kc{margin-left:auto;white-space:nowrap}
+.bx-l2{font-size:12px;color:var(--sub);margin-top:1px}
+.bx-ed{font:inherit;font-size:14px;border:1px solid var(--blue2);border-radius:6px;padding:1px 5px;background:#fff;color:inherit;-webkit-user-select:text;user-select:text;min-width:0;width:100%}
+.bx-am .bx-ed{width:56px;text-align:right;margin-right:1px}
+.bx-ft{flex:none;border-top:1px solid var(--line);padding:2px 16px calc(env(safe-area-inset-bottom) + 10px)}
+#boxAdd{width:100%;height:46px;font-size:15px;font-weight:600;color:#b4bfca;background:none}
+#boxAdd.on{color:#4A5868}
+.theme-jc .bx-l1{color:var(--jb)}.theme-jc .bx-am,.theme-jc .bx-l2{color:#84B0CA}
+.theme-jc .bx-tg i{border-color:#A9C6D8}.theme-jc .bx-tg.on i{background:var(--jb);border-color:var(--jb)}
+.theme-jc #boxAdd{color:#B9D1DF}.theme-jc #boxAdd.on{color:var(--jb)}
 .theme-jc .lastmeal{color:var(--jc)}
 .theme-jc .d-box{background:#fff;border-color:var(--jb);color:var(--jb)}.theme-jc .d-box .s-label,.theme-jc .d-box small{color:inherit}
 .theme-jc .d-box.in{background:#EAE6E6}
@@ -383,6 +422,16 @@ body.theme-jc{--jb:#1F6F9E;--jb2:#2477A8;--jc:#E8573A;--jcl:#F4A894}
   </section>
 </div>
 
+<!-- 저장함 -->
+<div id="boxSheet" hidden>
+  <div class="bx-bg"></div>
+  <section class="bx" role="dialog" aria-label="저장함">
+    <div class="grab"></div>
+    <div class="bx-list" id="boxList"></div>
+    <div class="bx-ft"><button type="button" id="boxAdd">추가</button></div>
+  </section>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -390,12 +439,12 @@ body.theme-jc{--jb:#1F6F9E;--jb2:#2477A8;--jc:#E8573A;--jcl:#F4A894}
 /* ============ 저장소 ============ */
 const LS = 'dietnote.v1';
 const APP_NAME = 'Bite with me!';
-const APP_VERSION = 'v1.6.3';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
+const APP_VERSION = 'v1.7.0';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
 const DEFAULT_MODEL = 'gemini-flash-latest';
 const KCAL_PER_KG = 7700;
 const NEW_DAY_HOUR = 4;               // 이 시각 이전은 전날로 취급
 const fresh = () => ({ notes:[], profile:{}, settings:{ apiKey:'', model:DEFAULT_MODEL, stepTopic:'', stepSince:'' },
-  days:{}, cur:null, steps:[], chat:[], reports:{} });
+  days:{}, cur:null, steps:[], chat:[], reports:{}, box:[] });
 let S;
 try { S = Object.assign(fresh(), JSON.parse(localStorage.getItem(LS) || 'null') || {}); } catch(e) { S = fresh(); }
 if (!S.settings.stepTopic) S.settings.stepTopic = 'dietnote-' + Math.random().toString(36).slice(2,8) + Math.random().toString(36).slice(2,8);
@@ -711,6 +760,9 @@ const SCHEMA = {
     exercises:{type:'ARRAY', items:{type:'OBJECT', properties:{
       name:{type:'STRING'}, amount:{type:'STRING'}, kcal:{type:'NUMBER'}
     }, required:['name','amount','kcal']}},
+    saves:{type:'ARRAY', items:{type:'OBJECT', properties:{
+      ref:{type:'STRING'}, name:{type:'STRING'}, amount:{type:'STRING'}, kcal:{type:'NUMBER'}, carb:{type:'NUMBER'}, protein:{type:'NUMBER'}, fat:{type:'NUMBER'}, alcohol:{type:'NUMBER'}
+    }, required:['name']}},
     others:{type:'ARRAY', items:{type:'OBJECT', properties:{
       type:{type:'STRING', enum:['profile','weight','bodyfat','steps','wake','sleep','undo','note','note_remove']},
       text:{type:'STRING'}, date:{type:'STRING'}, time:{type:'STRING'},
@@ -761,6 +813,11 @@ function systemPrompt(){
 - 취소·삭제 요청("라면 취소해줘", "아까 그거 빼줘", "방금 거 지워")은 현황 데이터의 먹은음식·운동 목록에서 해당 항목을 찾아 others에 undo로 넣는다. 여러 개면 항목마다 하나씩 넣는다.
 - 양·칼로리를 고치는 요청("라면 반만 먹었어", "아까 치킨 3조각이었어")은 기존 항목을 undo로 지우고 고친 항목을 foods/exercises에 새로 넣는다.
 - 취소 결과("취소했어요" 또는 "찾지 못했어요")는 앱이 실제 처리 결과를 답변 끝에 덧붙인다. reply에서 취소했다고 단정하지 않는다.
+- 저장함 저장 요청("라면 저장해줘", "이거 저장해 둬")은 saves에 넣는다. 저장은 기록이 아니다. 먹었다는 말이 없으면 foods에 넣지 않는다.
+  · 오늘 먹은음식 목록에 있는 음식이면 ref에 목록의 음식 이름을 그대로 적고 name도 같게 적는다. 값은 앱이 기록에서 그대로 복사한다.
+  · 목록에 없는 것(예: 영양성분표 사진만 보내고 저장 요청)은 name, amount, kcal, carb, protein, fat를 채운다. 영양성분표는 표 기준 1회 제공량이나 사용자가 말한 양으로.
+  · "먹었고 저장도 해줘"면 foods에 기록하고 saves에도 넣는다(ref=그 음식 name).
+  · 저장 결과는 앱이 답변 끝에 덧붙이니 reply에서 저장했다고 단정하지 않는다.
 - 실제 기록은 오직 foods·exercises·others 배열에 넣은 것만 저장된다. reply에 "기록했어요"라고 썼다면 같은 항목이 반드시 배열에 들어 있어야 하고, reply에 쓴 칼로리 숫자와 배열의 kcal 숫자가 같아야 한다.
 
 [배열 작성법]
@@ -847,13 +904,14 @@ async function askGemini(userText, note, modelOverride, img){
   const actions = [
     ...arr(j.foods).map(f=>({...f, type:'food'})),
     ...arr(j.exercises).map(x=>({...x, type:'exercise'})),
+    ...arr(j.saves).map(x=>({...x, type:'save'})),
     ...arr(j.others),
     ...arr(j.actions)                      // 예전 형식 응답도 허용
   ];
   return { reply:String(j.reply||''), actions, src:sourcesOf(meta.gm) };
 }
 const searchLevel = new Map();
-const JSON_ONLY = `\n\n[응답 형식] 반드시 JSON 객체 하나만 출력한다. 코드블록·설명 문장 없이 { 로 시작해 } 로 끝낸다. 키: reply(문자열), foods(배열: name, amount, kcal, carb, protein, fat, alcohol), exercises(배열: name, amount, kcal), others(배열: type과 필요한 값). 기록할 것이 없으면 빈 배열.`;
+const JSON_ONLY = `\n\n[응답 형식] 반드시 JSON 객체 하나만 출력한다. 코드블록·설명 문장 없이 { 로 시작해 } 로 끝낸다. 키: reply(문자열), foods(배열: name, amount, kcal, carb, protein, fat, alcohol), exercises(배열: name, amount, kcal), saves(배열: ref, name, amount, kcal, carb, protein, fat, alcohol), others(배열: type과 필요한 값). 기록할 것이 없으면 빈 배열.`;
 // 응답에서 JSON만 꺼냄 (앞뒤에 다른 글이나 코드블록이 붙어도)
 function parseJSON(raw){ const t=String(raw||'').replace(/^```(json)?|```$/g,'').trim();
   try { return JSON.parse(t); } catch(_) {}
@@ -957,7 +1015,8 @@ function recordProblem(r){
 function applyActions(actions){
   const recs=[], notes=[]; let touched=false;
   // "고쳐줘" = 기존 항목 undo + 고친 항목 추가. undo를 먼저 처리해야 같은 이름의 새 항목을 지우지 않음
-  actions = [...actions].sort((a,b)=>(b.type==='undo')-(a.type==='undo'));
+  const rank = a => a.type==='undo' ? 0 : a.type==='save' ? 2 : 1;   // 저장은 맨 나중 — 같은 메시지에서 먹은 음식도 찾을 수 있게
+  actions = [...actions].sort((a,b)=>rank(a)-rank(b));
   for (const a of actions){
     const t=Date.now();
     switch(a.type){
@@ -975,6 +1034,12 @@ function applyActions(actions){
         notes.push(tm ? setWakeTime(+tm[1], +tm[2]) : wakeUp().text); break; }
       case 'sleep': notes.push(goSleep().text); break;
       case 'undo': notes.push(undoNamed(a.target, a.text)); touched=true; break;
+      case 'save': { const d=ensureDay(); const key=String(a.ref||a.name||'').trim(); const fs=d?[...d.foods].reverse():[];
+        const f = key && (fs.find(x=>x.name===key) || fs.find(x=>x.name.includes(key)||key.includes(x.name)));
+        if (f) notes.push(boxAdd(f) ? `저장함에 '${f.name}' 저장했어요.` : `'${f.name}'은 이미 저장함에 있어요.`);
+        else if (num(a.kcal)>0) notes.push(boxAdd(a) ? `저장함에 '${a.name}' 저장했어요.` : `'${a.name}'은 이미 저장함에 있어요.`);
+        else notes.push(`'${key||'음식'}'을 찾지 못해 저장하지 못했어요.`);
+        break; }
       case 'note': { const n=addNote(a.text, a.date); if (n) notes.push(`메모 추가: ${relDay(n.date)} ${n.text}`); break; }
       case 'note_remove': { const n=removeNote(a.target||a.text); if (n) notes.push(`메모 삭제: ${n.text}`); break; }
       case 'profile': { const ch=setProfile({birth:a.birth,age:a.age,height:a.height,weight:a.weight,sex:a.sex,targetKcal:a.target_kcal,targetProtein:a.target_protein});
@@ -1401,7 +1466,7 @@ function summaryBoxes(s){
     : `<div class="d-row">${burn(1, true)}</div><div class="d-row">${intake(s.intake)}${dbox(diff)}</div>`) + `</div>`;
 }
 // 마지막 식사(10kcal 이상) 이후 경과 — 화면 표시용, AI에는 넘기지 않음
-function lastMeal(){ let b=null; for (const id in S.days) for (const f of (S.days[id].foods||[])) if ((+f.kcal||0)>=10 && f.t && (!b || f.t>b.t)) b=f; return b; }
+function lastMeal(){ let b=null; for (const id in S.days) for (const f of (S.days[id].foods||[])) if ((+f.kcal||0)>=10 && f.t && (!b || f.t>=b.t)) b=f; return b; }   // 같은 시각이면 맨 아래 항목 (v1.7.0)
 function agoTxt(t){ const m=Math.max(0,Math.floor((Date.now()-t)/60000)); return `(${Math.floor(m/60)}<span class="tick">:</span>${pad(m%60)}전)`; }
 function agoTag(t){ return `<b class="lastmeal" data-t="${t}">${agoTxt(t)}</b>`; }
 // 기록 화면이 열려 있는 동안 경과 시간 분 단위 갱신 (콜론이 깜빡이니 숫자도 살아 있어야 함)
@@ -1414,7 +1479,147 @@ function intakeHead(d,s){
   const t=k=>pick.reduce((a,x)=>a+(+x[k]||0),0), al=t('alcohol');
   return `섭취 내역 · <span class="selsum">탄 ${N(t('carb'),1)} / 단 ${N(t('protein'),1)} / 지 ${N(t('fat'),1)}${al>0?` / 알 ${N(al,1)}`:''} g · ${N(t('kcal'))} kcal</span>`;
 }
-function clearFsel(){ if(!fsel.size) return; fsel.clear(); const b=$('#dayBody'); b.querySelectorAll('.fsel').forEach(e=>e.classList.remove('fsel')); const h=b.querySelector('#intakeHead'); const d=S.cur&&S.days[S.cur]; if(h&&d) h.innerHTML=intakeHead(d,summarize(d)); }
+function clearFsel(){ if(!fsel.size) return; fsel.clear(); const b=$('#dayBody'); b.querySelectorAll('.fsel').forEach(e=>e.classList.remove('fsel')); const fl=b.querySelector('#foodList'); if(fl) fl.classList.remove('fmode'); const h=b.querySelector('#intakeHead'); const d=S.cur&&S.days[S.cur]; if(h&&d) h.innerHTML=intakeHead(d,summarize(d)); }
+/* ============ × 두 번 누르기 (v1.7.0) ============
+   한 번 누르면 그 자리가 빨간 '삭제'로 바뀌고, 다시 눌러야 원래 삭제 동작이 실행됨. 3초 지나거나 다른 곳을 누르면 ×로 돌아감 */
+let ARMED=null, ARMED_T=null;
+function disarmDelete(){ if(!ARMED) return; ARMED.classList.remove('armed'); ARMED.innerHTML=ARMED.dataset.ico||''; ARMED=null; clearTimeout(ARMED_T); }
+function armDeletes(root){
+  root.addEventListener('click', e=>{
+    const btn=e.target.closest('.del');
+    if (ARMED && btn!==ARMED) disarmDelete();
+    if (!btn || btn===ARMED) { if (btn) { ARMED=null; clearTimeout(ARMED_T); } return; }   // 두 번째 누름은 원래 동작으로 통과
+    e.stopPropagation(); e.preventDefault();
+    btn.dataset.ico=btn.innerHTML; btn.textContent='삭제'; btn.classList.add('armed'); ARMED=btn;
+    ARMED_T=setTimeout(disarmDelete, 3000);
+  }, true);
+}
+document.addEventListener('click', e=>{ if (ARMED && !e.target.closest('.del')) disarmDelete(); }, true);
+
+/* ============ 저장함 (v1.7.0) ============
+   저장값은 기록된 그대로. 섭취량은 '앞말 + 숫자 + 단위'로 나눠 두고, 수정할 땐 숫자만 바꿔 칼로리·탄단지를 비례 조정 */
+const BM_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="miter"><path d="M6 3h12v18l-6-4.5L6 21z"/></svg>';
+const srcKey = x => `${x.name}|${x.amount||''}`;
+function splitAmt(a){ a=String(a||'').trim(); const re=/(\d+(?:\.\d+)?)([^\d\s.,()]*)/g; let m, last=null; while((m=re.exec(a))) last=m;
+  if(!last) return {pre:a, qty:null, unit:''};
+  return {pre:a.slice(0,last.index), qty:parseFloat(last[1]), unit:last[2] + a.slice(last.index+last[0].length)}; }
+const fq = v => String(Math.round(v*100)/100);
+const boxAmt = b => b.qty==null ? (b.pre||'') : `${b.pre||''}${fq(b.qty)}${b.unit||''}`;
+function boxHas(x){ const k=srcKey(x); return (S.box||[]).some(b=>b.src===k); }
+function boxRemoveSrc(x){ const k=srcKey(x); S.box=(S.box||[]).filter(b=>b.src!==k); }
+function boxAdd(x){ if(!Array.isArray(S.box)) S.box=[]; const k=srcKey(x); if (S.box.some(b=>b.src===k)) return false;
+  const a=splitAmt(x.amount);
+  const b={id:uid(), src:k, name:String(x.name||'음식'), pre:a.pre, qty:a.qty, unit:a.unit,
+    kcal:Math.round(num(x.kcal)||0), carb:r1(num(x.carb)||0), protein:r1(num(x.protein)||0), fat:r1(num(x.fat)||0)};
+  const al=r1(num(x.alcohol)||0); if (al>0) b.alcohol=al;
+  S.box.push(b); return true; }
+const bsel=new Set();
+function renderBox(){
+  const L=$('#boxList'); const box=S.box||[];
+  for (const id of [...bsel]) if(!box.some(b=>b.id===id)) bsel.delete(id);
+  L.innerHTML = box.length ? box.map(b=>`<div class="bx-r" data-id="${b.id}"><button type="button" class="bx-tg${bsel.has(b.id)?' on':''}" aria-label="선택"><i></i></button>`
+    + `<div class="bx-b"><div class="bx-l1"><span class="bx-nm">${esc(b.name)}</span><span class="bx-am">${esc(boxAmt(b))}</span><span class="bx-kc num">${N(b.kcal)} kcal</span></div>`
+    + `<div class="bx-l2">탄${N(b.carb,1)} 단${N(b.protein,1)} 지${N(b.fat,1)}${b.alcohol>0?` 알${N(b.alcohol,1)}`:''}g</div></div>`
+    + `<button class="del" type="button" aria-label="삭제"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>`).join('')
+    : '<p class="empty" style="text-align:center;padding:28px 0">저장한 음식이 없어요.</p>';
+  updBoxAdd();
+}
+function updBoxAdd(){ const a=$('#boxAdd'); a.classList.toggle('on', bsel.size>0); a.textContent = bsel.size ? `${bsel.size}개 추가` : '추가'; }
+// 고른 것들을 지금 시각으로 기록 → 대화에 기록 말풍선을 남겨 AI도 알게 함
+function addFromBox(){
+  if (!bsel.size) return; const d=ensureDay(); if(!d) { toast('먼저 설정에서 내 정보를 입력해 주세요'); return; }
+  const t=Date.now(), recs=[];
+  for (const b of (S.box||[])) if (bsel.has(b.id)) {
+    const x={id:uid(), t, name:b.name, amount:boxAmt(b), kcal:Math.round(b.kcal), carb:r1(b.carb), protein:r1(b.protein), fat:r1(b.fat)};
+    if (b.alcohol>0) x.alcohol=r1(b.alcohol);
+    d.foods.push(x); recs.push({k:'섭취', ...x});
+  }
+  bsel.clear(); const s=summarize(d);
+  const nums=[`섭취 ${N(s.intake)}kcal`, s.remain<0?`초과 칼로리 ${N(-s.remain)}kcal`:`남은 칼로리 ${N(s.remain)}kcal`, s.protRemain<0?`초과 단백질 ${N(-s.protRemain)}g`:`남은 단백질 ${N(s.protRemain)}g`];
+  const recText = recs.map(x=>`[${x.k}] ${x.name} ${x.amount} ${x.kcal}kcal`).join('\n');
+  addMsg('bot', `저장함에서 ${recs.map(x=>x.name).join(', ')} 기록했어요.\n지금 ${nums.join(', ')}이에요.`, {recs, recText});
+  closeBox(); render(); if (panelOpen) renderDaySheet();
+}
+// 꾹 눌러 고치기: 이름은 글자, 섭취량은 숫자만(단위 고정, 칼로리·탄단지 비례)
+function editBox(row, which){
+  const b=(S.box||[]).find(x=>x.id===row.dataset.id); if(!b) return; disarmDelete();
+  const host=row.querySelector(which==='name'?'.bx-nm':'.bx-am'); if (!host || host.querySelector('input')) return;
+  if (which==='amt' && b.qty==null) return;
+  host.innerHTML = which==='name' ? `<input class="bx-ed" value="${esc(b.name)}" enterkeyhint="done">`
+    : `${esc(b.pre||'')}<input class="bx-ed" type="text" inputmode="decimal" value="${fq(b.qty)}" enterkeyhint="done">${esc(b.unit||'')}`;
+  if (which==='name') host.style.flex='1';
+  const inp=host.querySelector('input'); inp.focus(); inp.select();
+  const done=()=>{ inp.onblur=null;
+    if (which==='name') { const v=inp.value.trim(); if (v) b.name=v; }
+    else { const v=num(inp.value); if (v>0 && v!==b.qty) { const k=v/b.qty; b.kcal=Math.round(b.kcal*k); b.carb=r1(b.carb*k); b.protein=r1(b.protein*k); b.fat=r1(b.fat*k); if (b.alcohol) b.alcohol=r1(b.alcohol*k); b.qty=v; } }
+    save(); renderBox(); };
+  inp.onblur=done; inp.onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); inp.blur(); } };
+}
+/* 시트 움직임: 고쉐와 같게 — 올라올 땐 1초(cubic-bezier(.22,.8,.24,1)), 내려갈 땐 0.5초(cubic-bezier(.45,0,.8,.5)),
+   끄는 동안은 손가락을 따라가고 놓으면 마저 가거나 제자리로 (0.22초) */
+let BXA=[];
+const bxEl=()=>$('#boxSheet'), bxSh=()=>$('#boxSheet .bx'), bxBg=()=>$('#boxSheet .bx-bg');
+const bxH=()=>bxSh().offsetHeight||500;
+function bxSet(y){ const H=bxH(); bxSh().style.transform=`translateY(${y}px)`; bxBg().style.opacity=String(Math.max(0,1-y/H)); }
+function bxAnim(from,to,dur,ease,done){ BXA.forEach(a=>a.cancel()); const H=bxH();
+  BXA=[bxSh().animate([{transform:`translateY(${from}px)`},{transform:`translateY(${to}px)`}],{duration:dur,easing:ease,fill:'forwards'}),
+       bxBg().animate([{opacity:Math.max(0,1-from/H)},{opacity:Math.max(0,1-to/H)}],{duration:dur,easing:ease,fill:'forwards'})];
+  BXA[0].onfinish=()=>{ bxSet(to); BXA.forEach(a=>a.cancel()); BXA=[]; done&&done(); }; }
+const boxOpen=()=>!bxEl().hidden;
+function showBox(){ bsel.clear(); renderBox(); $('#boxList').scrollTop=0; bxEl().hidden=false; delete bxEl().dataset.closing; try{ $('#input').blur(); }catch(_){} }
+function hideBox(){ bxEl().hidden=true; delete bxEl().dataset.closing; disarmDelete(); }
+function closeBox(from){ if(!boxOpen() || bxEl().dataset.closing) return; bxEl().dataset.closing='1'; const y=from==null?0:from;
+  bxAnim(y, bxH(), 500, 'cubic-bezier(.45,0,.8,.5)', hideBox); }
+// 입력창 줄을 위로 쓸어 올리면 열림 (맨 아래 가장자리는 아이폰 홈 제스처라 건드리지 않음)
+(function(){
+  const comp=$('#composer'); let y0=null, x0=0, lock=null, cur=0, last=[];
+  comp.addEventListener('touchstart', e=>{
+    if (e.touches.length!==1 || boxOpen() || !$('#crop').hidden || !$('#viewer').hidden) { y0=null; return; }
+    const ta=$('#input'); if (e.target===ta && ta.scrollHeight>ta.clientHeight+2) { y0=null; return; }   // 여러 줄 입력창 안 스크롤은 그대로
+    y0=e.touches[0].clientY; x0=e.touches[0].clientX; lock=null; last=[];
+  }, {passive:true});
+  comp.addEventListener('touchmove', e=>{
+    if (y0===null) return; const t=e.touches[0], dy=y0-t.clientY, dx=t.clientX-x0;
+    if (!lock) { if (Math.abs(dy)<8 && Math.abs(dx)<8) return; lock = dy>0 && dy>Math.abs(dx) ? 'up' : 'no';
+      if (lock==='up') { showBox(); BXA.forEach(a=>a.cancel()); BXA=[]; } }
+    if (lock!=='up') return; e.preventDefault();
+    const H=bxH(); cur=Math.min(H, Math.max(0, H-dy)); bxSet(cur);
+    last.push([Date.now(), t.clientY]); if (last.length>5) last.shift();
+  }, {passive:false});
+  const end=()=>{ if (lock!=='up') { y0=null; return; } y0=null; lock=null; const H=bxH();
+    const v = last.length>1 ? (last[0][1]-last[last.length-1][1])/Math.max(1,last[last.length-1][0]-last[0][0]) : 0;   // 위로 빠르기(px/ms)
+    if ((H-cur)/H>0.25 || v>0.5) bxAnim(cur, 0, Math.max(250, 1000*cur/H), 'cubic-bezier(.22,.8,.24,1)');
+    else bxAnim(cur, H, 220, 'ease-out', hideBox); };
+  comp.addEventListener('touchend', end); comp.addEventListener('touchcancel', end);
+})();
+// 시트 안: 아래로 끌면 손가락 따라 내려가고, 바깥(어두운 곳) 탭이면 닫힘
+(function(){
+  const sh=$('#boxSheet .bx'), L=$('#boxList'); let y0=null, dy=0, last=[];
+  $('#boxSheet .bx-bg').addEventListener('click', ()=>closeBox());
+  sh.addEventListener('touchstart', e=>{ if (bxEl().dataset.closing || e.target.closest('input')) { y0=null; return; }
+    y0 = (L.scrollTop<=0 || !e.target.closest('.bx-list')) ? e.touches[0].clientY : null; dy=0; last=[]; }, {passive:true});
+  sh.addEventListener('touchmove', e=>{ if (y0===null) return; const y=e.touches[0].clientY; dy=Math.max(0, y-y0); if (dy<=0) return; e.preventDefault();
+    BXA.forEach(a=>a.cancel()); BXA=[]; bxSet(dy); last.push([Date.now(), y]); if (last.length>5) last.shift(); }, {passive:false});
+  sh.addEventListener('touchend', ()=>{ if (y0===null || dy<=0) { y0=null; return; } y0=null;
+    const v = last.length>1 ? (last[last.length-1][1]-last[0][1])/Math.max(1,last[last.length-1][0]-last[0][0]) : 0;
+    if (dy>90 || v>0.5) closeBox(dy); else bxAnim(dy, 0, 220, 'ease-out'); });
+  armDeletes(L);
+  L.addEventListener('click', e=>{
+    const row=e.target.closest('.bx-r'); if(!row) return;
+    if (e.target.closest('.del')) { S.box=(S.box||[]).filter(b=>b.id!==row.dataset.id); bsel.delete(row.dataset.id); save(); renderBox(); if (panelOpen) renderDaySheet(); return; }
+    const tg=e.target.closest('.bx-tg'); if (!tg) return;
+    const id=row.dataset.id; bsel.has(id)?bsel.delete(id):bsel.add(id); tg.classList.toggle('on', bsel.has(id)); updBoxAdd();
+  });
+  // 꾹 누르기(0.5초): 이름·섭취량 수정. 움직이면 취소
+  let ht=null, hx=0, hy=0;
+  L.addEventListener('touchstart', e=>{ const tgt=e.target.closest('.bx-nm,.bx-am'); clearTimeout(ht); if(!tgt || tgt.querySelector('input')) return;
+    hx=e.touches[0].clientX; hy=e.touches[0].clientY; const row=tgt.closest('.bx-r'), which=tgt.classList.contains('bx-nm')?'name':'amt';
+    ht=setTimeout(()=>{ ht=null; editBox(row, which); }, 500); }, {passive:true});
+  L.addEventListener('touchmove', e=>{ if(ht && (Math.abs(e.touches[0].clientX-hx)>8 || Math.abs(e.touches[0].clientY-hy)>8)) { clearTimeout(ht); ht=null; } }, {passive:true});
+  L.addEventListener('touchend', ()=>{ clearTimeout(ht); ht=null; });
+  L.addEventListener('contextmenu', e=>e.preventDefault());
+  $('#boxAdd').addEventListener('click', addFromBox);
+})();
 function renderDaySheet(){
   const d=S.cur&&S.days[S.cur]; const b=$('#dayBody');
   if(!d){ b.innerHTML='<p class="empty">아직 기록이 없어요.</p>'; return; }
@@ -1430,7 +1635,7 @@ function renderDaySheet(){
   for (const id of [...fsel]) if (!d.foods.some(x=>x.id===id)) fsel.delete(id);
   h += `<div class="sec" id="intakeHead">${intakeHead(d,s)}</div>`;
   const lm=lastMeal();
-  h += d.foods.length ? d.foods.map(x=>`<div class="list-item food${fsel.has(x.id)?' fsel':''}" data-food="${x.id}"><div class="grow">${esc(x.name)} <span style="color:var(--sub)">${esc(x.amount||'')}</span><small>${hm(x.t)} · 탄${N(x.carb,1)} 단${N(x.protein,1)} 지${N(x.fat,1)}${x.alcohol>0?` 알${N(x.alcohol,1)}`:''}g${lm===x?agoTag(x.t):''}</small></div><span class="num">${N(x.kcal)} kcal</span>${del('f',x.id)}</div>`).join('') : `<p class="empty">아직 먹은 기록이 없어요.${lm?agoTag(lm.t):''}</p>`;
+  h += d.foods.length ? `<div id="foodList"${fsel.size?' class="fmode"':''}>` + d.foods.map(x=>`<div class="list-item food${fsel.has(x.id)?' fsel':''}" data-food="${x.id}"><div class="fi"><button type="button" class="bm${boxHas(x)?' on':''}" aria-label="저장함">${BM_SVG}</button><div class="grow">${esc(x.name)} <span style="color:var(--sub)">${esc(x.amount||'')}</span><small>${hm(x.t)} · 탄${N(x.carb,1)} 단${N(x.protein,1)} 지${N(x.fat,1)}${x.alcohol>0?` 알${N(x.alcohol,1)}`:''}g${lm===x?agoTag(x.t):''}</small></div><span class="num">${N(x.kcal)} kcal</span>${del('f',x.id)}</div></div>`).join('') + `</div>` : `<p class="empty">아직 먹은 기록이 없어요.${lm?agoTag(lm.t):''}</p>`;
   const memoList = S.notes.filter(n=>n.date>=nextDate(d.id,-1)).slice(0,30);
   h += `<div class="sec">메모·일정</div>` + (memoList.length ? memoList.map(n=>`<div class="list-item"><div class="grow">${esc(n.text)}<small>${relDay(n.date)} · ${n.date.slice(5).replace('-','/')}</small></div><button class="del" data-note="${n.id}" aria-label="메모 삭제"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>`).join('') : '<p class="empty">채팅으로 "오늘 저녁 회식 있어"처럼 말하면 메모돼요. AI는 어제·오늘·내일 메모를 감안해 조언해요.</p>');
   const hasM = d.weightAM || d.bodyFat;
@@ -1454,13 +1659,25 @@ function renderDaySheet(){
   const sr=b.querySelector('#stepRow'); if (sr) pullable(sr, pullSteps);
   if (!b.dataset.fselInit) {   // 한 번만 연결 (innerHTML만 바뀌고 #dayBody는 그대로)
     b.dataset.fselInit='1';
+    armDeletes(b);
     b.addEventListener('click', e=>{
       const row=e.target.closest('.list-item.food');
       if (!row || e.target.closest('.del')) { if(!e.target.closest('.del')) clearFsel(); return; }
-      const id=row.dataset.food; fsel.has(id)?fsel.delete(id):fsel.add(id); row.classList.toggle('fsel', fsel.has(id));
-      const dd=S.cur&&S.days[S.cur]; const hd=b.querySelector('#intakeHead'); if(dd&&hd) hd.innerHTML=intakeHead(dd,summarize(dd));
+      const dd=S.cur&&S.days[S.cur]; const id=row.dataset.food;
+      const bm=e.target.closest('.bm');
+      if (bm && fsel.size) {   // 선택 모드의 책갈피: 저장/해제 (선택은 그대로)
+        const x=dd && dd.foods.find(f=>f.id===id); if(!x) return;
+        if (boxHas(x)) boxRemoveSrc(x); else boxAdd(x);
+        bm.classList.toggle('on', boxHas(x)); save(); return;
+      }
+      fsel.has(id)?fsel.delete(id):fsel.add(id); row.classList.toggle('fsel', fsel.has(id));
+      const fl=b.querySelector('#foodList'); if(fl) fl.classList.toggle('fmode', fsel.size>0);
+      const hd=b.querySelector('#intakeHead'); if(dd&&hd) hd.innerHTML=intakeHead(dd,summarize(dd));
     });
-    b.addEventListener('scroll', clearFsel, {capture:true, passive:true});   // 세로 스크롤·최근 기록 표 가로 스크롤 모두
+    // 식단표(섭취 내역 소제목~마지막 항목)를 잡고 스크롤하면 선택 유지, 그 밖을 잡고 스크롤하면 해제 (v1.7.0)
+    let keepOnScroll=false;
+    b.addEventListener('touchstart', e=>{ keepOnScroll = !!(e.target.closest && e.target.closest('#intakeHead,#foodList')); }, {capture:true, passive:true});
+    b.addEventListener('scroll', ()=>{ if(!keepOnScroll) clearFsel(); }, {capture:true, passive:true});   // 세로 스크롤·최근 기록 표 가로 스크롤 모두
   }
 }
 /* 기록 화면에서 ×로 지우면 대화에 AI 말풍선으로 남김 → 다음 질문 때 대화 기록과 함께 AI에 넘어가 혼선이 없음
@@ -1509,7 +1726,7 @@ function closePanel(){ clearFsel(); panelX(innerWidth, true); panelOpen=false;
   let hist=null, zeroAt=null, base=0;               // 최근 기록 표 위에서 시작한 밀기
   const HIST_BUFFER = 60;                           // 표가 맨 앞에 닿은 뒤 이만큼(px) 더 당겨야 화면이 따라 움직임
   const HIST_CLOSE = 78;                            // 버퍼를 지난 뒤 이만큼(px) 더 끌고 놓으면 닫힘 (표 바깥은 화면 폭의 30%)
-  const sheetOpen = () => !!document.querySelector('#setSheet.open') || !$('#crop').hidden || !$('#viewer').hidden;
+  const sheetOpen = () => !!document.querySelector('#setSheet.open') || !$('#crop').hidden || !$('#viewer').hidden || !$('#boxSheet').hidden;
   document.addEventListener('touchstart', e=>{
     if (e.touches.length!==1 || sheetOpen()) { active=false; return; }
     const t=e.touches[0]; sx=t.clientX; sy=t.clientY; st=Date.now(); lock=null; active=true; base=0;
@@ -1628,7 +1845,7 @@ $('#importFile').addEventListener('change', async e=>{ const f=e.target.files[0]
   n.settings.model = keep.model || n.settings.model || DEFAULT_MODEL;
   n.settings.stepTopic = keep.stepTopic || n.settings.stepTopic; n.settings.stepSince = keep.stepSince || '';
   n.usage = S.usage;                                     // 토큰 사용량도 이 기기 것을 유지
-  for (const k of ['notes','steps','chat']) if (!Array.isArray(n[k])) n[k]=[];
+  for (const k of ['notes','steps','chat','box']) if (!Array.isArray(n[k])) n[k]=[];
   if (!n.reports || typeof n.reports!=='object') n.reports={};
   for (const id in n.days){ const d=n.days[id]; if (!d || typeof d!=='object') { delete n.days[id]; continue; }
     d.id=id; if (!Array.isArray(d.foods)) d.foods=[]; if (!Array.isArray(d.exercises)) d.exercises=[]; if (!d.wakeAt) d.wakeAt=new Date(id+'T07:00').getTime(); }
