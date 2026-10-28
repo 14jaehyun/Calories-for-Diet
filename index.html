@@ -192,12 +192,14 @@ table.hist td{text-align:right;padding:7px 4px;border-bottom:1px solid var(--lin
 table.hist th:first-child,table.hist td:first-child{text-align:left}
 .empty{color:var(--faint);font-size:13px;padding:8px 0}
 .lastmeal{color:var(--mint-bar);font-weight:700;margin-left:4px}   /* 마지막 식사 후 경과 (v1.5.9) */
-.lastmeal .tick{animation:tick 1s steps(1,end) infinite}   /* 콜론을 시계처럼 1초마다 켜고 끔 (v1.6.2) */
+.lastmeal .tick{animation:tick 1s steps(1,end) infinite;color:inherit!important}   /* 콜론을 시계처럼 1초마다 켜고 끔 (v1.6.2), 색은 앞뒤 글자와 같게 (v1.6.3) */
 @keyframes tick{0%{opacity:1}50%{opacity:0}}
 /* 섭취 내역 항목 탭 선택 → 소제목 탄단지 자리에 선택 합계 (v1.6.2) */
 .list-item.fsel{background:var(--soft);margin:0 -16px;padding-left:16px;padding-right:16px}
-.selsum{animation:selpulse 3s ease-in-out infinite}
-@keyframes selpulse{0%,100%{opacity:1}50%{opacity:.4}}
+/* 선택 합계: 밝은 빛줄기가 3초마다 글자 위를 훑고 지나감 (v1.6.3) */
+.selsum{--shA:var(--sub);--shB:#e9eef3;display:inline-block;background-image:linear-gradient(100deg,var(--shA) 40%,var(--shB) 50%,var(--shA) 60%);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;animation:selsweep 3s ease-in-out infinite}
+.theme-jc .selsum{--shA:var(--jc);--shB:#FFE0D6}
+@keyframes selsweep{0%{background-position:150% 0}60%,100%{background-position:-50% 0}}
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:9px 14px;border-radius:10px;font-size:13px;opacity:.92;z-index:20;pointer-events:none;display:none}
 .toast.show{display:block;animation:fadeIn .2s ease}
 /* ===== 사진 첨부 (v1.4.0) ===== */
@@ -388,7 +390,7 @@ body.theme-jc{--jb:#1F6F9E;--jb2:#2477A8;--jc:#E8573A;--jcl:#F4A894}
 /* ============ 저장소 ============ */
 const LS = 'dietnote.v1';
 const APP_NAME = 'Bite with me!';
-const APP_VERSION = 'v1.6.2';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
+const APP_VERSION = 'v1.6.3';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
 const DEFAULT_MODEL = 'gemini-flash-latest';
 const KCAL_PER_KG = 7700;
 const NEW_DAY_HOUR = 4;               // 이 시각 이전은 전날로 취급
@@ -1410,7 +1412,7 @@ function intakeHead(d,s){
   const pick=d.foods.filter(x=>fsel.has(x.id));
   if(!pick.length) return `섭취 내역 · 탄 ${N(s.carb,1)} / 단 ${N(s.protein,1)} / 지 ${N(s.fat,1)}${s.alcohol>0?` / 알 ${N(s.alcohol,1)}`:''} g`;
   const t=k=>pick.reduce((a,x)=>a+(+x[k]||0),0), al=t('alcohol');
-  return `섭취 내역 · <span class="selsum">${N(t('kcal'))} kcal · 탄 ${N(t('carb'),1)} / 단 ${N(t('protein'),1)} / 지 ${N(t('fat'),1)}${al>0?` / 알 ${N(al,1)}`:''} g</span>`;
+  return `섭취 내역 · <span class="selsum">탄 ${N(t('carb'),1)} / 단 ${N(t('protein'),1)} / 지 ${N(t('fat'),1)}${al>0?` / 알 ${N(al,1)}`:''} g · ${N(t('kcal'))} kcal</span>`;
 }
 function clearFsel(){ if(!fsel.size) return; fsel.clear(); const b=$('#dayBody'); b.querySelectorAll('.fsel').forEach(e=>e.classList.remove('fsel')); const h=b.querySelector('#intakeHead'); const d=S.cur&&S.days[S.cur]; if(h&&d) h.innerHTML=intakeHead(d,summarize(d)); }
 function renderDaySheet(){
