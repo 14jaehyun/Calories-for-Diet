@@ -192,6 +192,12 @@ table.hist td{text-align:right;padding:7px 4px;border-bottom:1px solid var(--lin
 table.hist th:first-child,table.hist td:first-child{text-align:left}
 .empty{color:var(--faint);font-size:13px;padding:8px 0}
 .lastmeal{color:var(--mint-bar);font-weight:700;margin-left:4px}   /* 마지막 식사 후 경과 (v1.5.9) */
+.lastmeal .tick{animation:tick 1s steps(1,end) infinite}   /* 콜론을 시계처럼 1초마다 켜고 끔 (v1.6.2) */
+@keyframes tick{0%{opacity:1}50%{opacity:0}}
+/* 섭취 내역 항목 탭 선택 → 소제목 탄단지 자리에 선택 합계 (v1.6.2) */
+.list-item.fsel{background:var(--soft);margin:0 -16px;padding-left:16px;padding-right:16px}
+.selsum{animation:selpulse 3s ease-in-out infinite}
+@keyframes selpulse{0%,100%{opacity:1}50%{opacity:.4}}
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:9px 14px;border-radius:10px;font-size:13px;opacity:.92;z-index:20;pointer-events:none;display:none}
 .toast.show{display:block;animation:fadeIn .2s ease}
 /* ===== 사진 첨부 (v1.4.0) ===== */
@@ -382,7 +388,7 @@ body.theme-jc{--jb:#1F6F9E;--jb2:#2477A8;--jc:#E8573A;--jcl:#F4A894}
 /* ============ 저장소 ============ */
 const LS = 'dietnote.v1';
 const APP_NAME = 'Bite with me!';
-const APP_VERSION = 'v1.6.1';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
+const APP_VERSION = 'v1.6.2';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
 const DEFAULT_MODEL = 'gemini-flash-latest';
 const KCAL_PER_KG = 7700;
 const NEW_DAY_HOUR = 4;               // 이 시각 이전은 전날로 취급
@@ -1394,7 +1400,19 @@ function summaryBoxes(s){
 }
 // 마지막 식사(10kcal 이상) 이후 경과 — 화면 표시용, AI에는 넘기지 않음
 function lastMeal(){ let b=null; for (const id in S.days) for (const f of (S.days[id].foods||[])) if ((+f.kcal||0)>=10 && f.t && (!b || f.t>b.t)) b=f; return b; }
-function agoTag(t){ const m=Math.max(0,Math.floor((Date.now()-t)/60000)); return `<b class="lastmeal">(${Math.floor(m/60)}:${pad(m%60)}전)</b>`; }
+function agoTxt(t){ const m=Math.max(0,Math.floor((Date.now()-t)/60000)); return `(${Math.floor(m/60)}<span class="tick">:</span>${pad(m%60)}전)`; }
+function agoTag(t){ return `<b class="lastmeal" data-t="${t}">${agoTxt(t)}</b>`; }
+// 기록 화면이 열려 있는 동안 경과 시간 분 단위 갱신 (콜론이 깜빡이니 숫자도 살아 있어야 함)
+setInterval(()=>{ if (panelOpen) document.querySelectorAll('#dayBody .lastmeal').forEach(e=>{ e.innerHTML=agoTxt(+e.dataset.t); }); }, 20000);
+// 섭취 내역에서 탭으로 고른 항목들 (v1.6.2) — 다른 곳 터치·스크롤 시 해제
+const fsel=new Set();
+function intakeHead(d,s){
+  const pick=d.foods.filter(x=>fsel.has(x.id));
+  if(!pick.length) return `섭취 내역 · 탄 ${N(s.carb,1)} / 단 ${N(s.protein,1)} / 지 ${N(s.fat,1)}${s.alcohol>0?` / 알 ${N(s.alcohol,1)}`:''} g`;
+  const t=k=>pick.reduce((a,x)=>a+(+x[k]||0),0), al=t('alcohol');
+  return `섭취 내역 · <span class="selsum">${N(t('kcal'))} kcal · 탄 ${N(t('carb'),1)} / 단 ${N(t('protein'),1)} / 지 ${N(t('fat'),1)}${al>0?` / 알 ${N(al,1)}`:''} g</span>`;
+}
+function clearFsel(){ if(!fsel.size) return; fsel.clear(); const b=$('#dayBody'); b.querySelectorAll('.fsel').forEach(e=>e.classList.remove('fsel')); const h=b.querySelector('#intakeHead'); const d=S.cur&&S.days[S.cur]; if(h&&d) h.innerHTML=intakeHead(d,summarize(d)); }
 function renderDaySheet(){
   const d=S.cur&&S.days[S.cur]; const b=$('#dayBody');
   if(!d){ b.innerHTML='<p class="empty">아직 기록이 없어요.</p>'; return; }
@@ -1407,9 +1425,10 @@ function renderDaySheet(){
     ${d.id>=DIGEST_FROM?`<div class="list-item"><div class="grow">소화대사량<small>섭취 탄단지·알코올 기준</small></div><span class="num">${N(s.digest)} kcal</span></div>`:''}
     <div class="list-item pull" id="stepRow"><div class="grow">걸음 ${N(s.steps)}보<small>${S.steps.length? '마지막 갱신 '+hm(S.steps[S.steps.length-1].t):'아직 걸음 데이터 없음'}</small></div><span class="num">${N(s.stepKcal)} kcal</span></div>`;
   h += d.exercises.map(x=>`<div class="list-item"><div class="grow">${esc(x.name)}<small>${hm(x.t)} ${esc(x.amount||'')}</small></div><span class="num">${N(x.kcal)} kcal</span>${del('e',x.id)}</div>`).join('');
-  h += `<div class="sec">섭취 내역 · 탄 ${N(s.carb,1)} / 단 ${N(s.protein,1)} / 지 ${N(s.fat,1)}${s.alcohol>0?` / 알 ${N(s.alcohol,1)}`:''} g</div>`;
+  for (const id of [...fsel]) if (!d.foods.some(x=>x.id===id)) fsel.delete(id);
+  h += `<div class="sec" id="intakeHead">${intakeHead(d,s)}</div>`;
   const lm=lastMeal();
-  h += d.foods.length ? d.foods.map(x=>`<div class="list-item"><div class="grow">${esc(x.name)} <span style="color:var(--sub)">${esc(x.amount||'')}</span><small>${hm(x.t)} · 탄${N(x.carb,1)} 단${N(x.protein,1)} 지${N(x.fat,1)}${x.alcohol>0?` 알${N(x.alcohol,1)}`:''}g${lm===x?agoTag(x.t):''}</small></div><span class="num">${N(x.kcal)} kcal</span>${del('f',x.id)}</div>`).join('') : `<p class="empty">아직 먹은 기록이 없어요.${lm?agoTag(lm.t):''}</p>`;
+  h += d.foods.length ? d.foods.map(x=>`<div class="list-item food${fsel.has(x.id)?' fsel':''}" data-food="${x.id}"><div class="grow">${esc(x.name)} <span style="color:var(--sub)">${esc(x.amount||'')}</span><small>${hm(x.t)} · 탄${N(x.carb,1)} 단${N(x.protein,1)} 지${N(x.fat,1)}${x.alcohol>0?` 알${N(x.alcohol,1)}`:''}g${lm===x?agoTag(x.t):''}</small></div><span class="num">${N(x.kcal)} kcal</span>${del('f',x.id)}</div>`).join('') : `<p class="empty">아직 먹은 기록이 없어요.${lm?agoTag(lm.t):''}</p>`;
   const memoList = S.notes.filter(n=>n.date>=nextDate(d.id,-1)).slice(0,30);
   h += `<div class="sec">메모·일정</div>` + (memoList.length ? memoList.map(n=>`<div class="list-item"><div class="grow">${esc(n.text)}<small>${relDay(n.date)} · ${n.date.slice(5).replace('-','/')}</small></div><button class="del" data-note="${n.id}" aria-label="메모 삭제"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>`).join('') : '<p class="empty">채팅으로 "오늘 저녁 회식 있어"처럼 말하면 메모돼요. AI는 어제·오늘·내일 메모를 감안해 조언해요.</p>');
   const hasM = d.weightAM || d.bodyFat;
@@ -1431,6 +1450,16 @@ function renderDaySheet(){
     if(i>=0){ const x=arr.splice(i,1)[0]; logDelete(k, [x.name, x.amount].filter(Boolean).join(' ')); render(); renderDaySheet(); }
   }));
   const sr=b.querySelector('#stepRow'); if (sr) pullable(sr, pullSteps);
+  if (!b.dataset.fselInit) {   // 한 번만 연결 (innerHTML만 바뀌고 #dayBody는 그대로)
+    b.dataset.fselInit='1';
+    b.addEventListener('click', e=>{
+      const row=e.target.closest('.list-item.food');
+      if (!row || e.target.closest('.del')) { if(!e.target.closest('.del')) clearFsel(); return; }
+      const id=row.dataset.food; fsel.has(id)?fsel.delete(id):fsel.add(id); row.classList.toggle('fsel', fsel.has(id));
+      const dd=S.cur&&S.days[S.cur]; const hd=b.querySelector('#intakeHead'); if(dd&&hd) hd.innerHTML=intakeHead(dd,summarize(dd));
+    });
+    b.addEventListener('scroll', clearFsel, {capture:true, passive:true});   // 세로 스크롤·최근 기록 표 가로 스크롤 모두
+  }
 }
 /* 기록 화면에서 ×로 지우면 대화에 AI 말풍선으로 남김 → 다음 질문 때 대화 기록과 함께 AI에 넘어가 혼선이 없음
    바로 앞 말풍선이 방금 만든 삭제 말풍선이면 새로 만들지 않고 합치고, 숫자는 늘 지금 상태로 다시 씀 */
@@ -1471,7 +1500,7 @@ const panel=$('#dayPanel');
 let panelOpen=false;
 function panelX(px, anim){ panel.classList.toggle('anim', !!anim); panel.style.transform = `translateX(${px}px)`; }
 function openPanel(){ renderDaySheet(); panel.classList.add('show'); void panel.offsetWidth; panelX(0, true); panelOpen=true; }
-function closePanel(){ panelX(innerWidth, true); panelOpen=false;
+function closePanel(){ clearFsel(); panelX(innerWidth, true); panelOpen=false;
   clearTimeout(closePanel._t); closePanel._t=setTimeout(()=>{ if(!panelOpen){ panel.classList.remove('show'); panel.style.transform=''; } }, 280); }
 (function swipe(){
   let sx=0, sy=0, st=0, lock=null, active=false;   // lock: 'h' 가로로 미는 중, 'v' 세로 스크롤
