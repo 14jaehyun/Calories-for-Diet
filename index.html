@@ -204,7 +204,7 @@ table.hist th:first-child,table.hist td:first-child{text-align:left}
 .bm{flex:none;width:30px;height:30px;display:grid;place-items:center;color:var(--faint);opacity:0;transition:opacity .25s ease .05s}
 .fmode .bm{opacity:1}
 .bm svg{width:15px;height:17px}
-.bm.on{color:var(--blue)}.bm.on svg{fill:currentColor}
+.bm{color:#c9d1da}.bm.on{color:#9aa7b5}.bm.on svg{fill:currentColor}   /* 눈에 덜 띄게: 저장도 회색 (v1.7.1) */
 .list-item.food .del{transition:opacity .2s}
 .fmode .list-item.food .del{opacity:0;pointer-events:none}
 /* × 두 번 누르기: 한 번 누르면 빨간 '삭제' (v1.7.0) */
@@ -287,7 +287,7 @@ body.theme-jc{--jb:#1F6F9E;--jb2:#2477A8;--jc:#E8573A;--jcl:#F4A894}
 .theme-jc .list-item,.theme-jc .list-item span,.theme-jc table.hist td,.theme-jc .s-label{color:var(--jb)}
 .theme-jc .list-item small,.theme-jc table.hist th{color:#84B0CA}   /* 청녹의 --sub 자리: 시간·탄단지·마지막 갱신 등 보조 줄 */
 .theme-jc .del,.theme-jc .empty{color:#A9C6D8}                      /* 청녹의 --faint 자리: × 버튼, 빈 기록 안내 */
-.theme-jc .bm{color:#A9C6D8}.theme-jc .bm.on{color:var(--jb)}
+.theme-jc .bm{color:#D3E3EC}.theme-jc .bm.on{color:#A9C6D8}
 /* 저장함 (v1.7.0) — 입력창 줄을 위로 쓸어 올리면 손가락을 따라 올라옴 */
 #boxSheet{position:fixed;inset:0;z-index:12}
 #boxSheet .bx-bg{position:absolute;inset:0;background:rgba(31,42,55,.28)}
@@ -305,8 +305,7 @@ body.theme-jc{--jb:#1F6F9E;--jb2:#2477A8;--jc:#E8573A;--jcl:#F4A894}
 .bx-am{color:var(--blue2);white-space:nowrap}
 .bx-kc{margin-left:auto;white-space:nowrap}
 .bx-l2{font-size:12px;color:var(--sub);margin-top:1px}
-.bx-ed{font:inherit;font-size:14px;border:1px solid var(--blue2);border-radius:6px;padding:1px 5px;background:#fff;color:inherit;-webkit-user-select:text;user-select:text;min-width:0;width:100%}
-.bx-am .bx-ed{width:56px;text-align:right;margin-right:1px}
+.bx-ed{font:inherit;font-size:inherit;line-height:inherit;border:none;border-radius:0;padding:0;margin:0;background:transparent;color:inherit;outline:none;-webkit-appearance:none;appearance:none;-webkit-user-select:text;user-select:text;min-width:1ch;max-width:100%;height:auto}   /* 상자 없이 그 자리에서 (v1.7.1) */
 .bx-ft{flex:none;border-top:1px solid var(--line);padding:2px 16px calc(env(safe-area-inset-bottom) + 10px)}
 #boxAdd{width:100%;height:46px;font-size:15px;font-weight:600;color:#b4bfca;background:none}
 #boxAdd.on{color:#4A5868}
@@ -439,7 +438,7 @@ body.theme-jc{--jb:#1F6F9E;--jb2:#2477A8;--jc:#E8573A;--jcl:#F4A894}
 /* ============ 저장소 ============ */
 const LS = 'dietnote.v1';
 const APP_NAME = 'Bite with me!';
-const APP_VERSION = 'v1.7.0';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
+const APP_VERSION = 'v1.7.1';       // 설정창 하단 표시. sw.js 캐시 이름과 같게 맞출 것
 const DEFAULT_MODEL = 'gemini-flash-latest';
 const KCAL_PER_KG = 7700;
 const NEW_DAY_HOUR = 4;               // 이 시각 이전은 전날로 취급
@@ -792,6 +791,7 @@ function context(){
     ctx.목표방향 = { 방향: g.mode==='bulk'?'증량(벌크업)':'감량', 목표섭취kcal:g.target, 평소소모kcal:g.burn, 차이kcal:g.target-g.burn };
     if (ids.length) ctx.최근 = ids.map(i=>{ const x=S.days[i], s=summarize(x); return `${i} 섭취${s.intake} 단백질${s.protein}g 소모${s.burn} 잉여${s.surplus} 체중${x.weightAM||'-'} 체지방률${x.bodyFat||'-'}`; });
   }
+  if (USEPICK && USEPICK.length) ctx.저장함에서고른음식 = USEPICK.map(b=>({이름:b.name, 양:b.amount, kcal:b.kcal, 탄수g:b.carb, 단백질g:b.protein, 지방g:b.fat, 알코올g:b.alcohol||0}));
   return ctx;
 }
 function systemPrompt(){
@@ -818,6 +818,7 @@ function systemPrompt(){
   · 목록에 없는 것(예: 영양성분표 사진만 보내고 저장 요청)은 name, amount, kcal, carb, protein, fat를 채운다. 영양성분표는 표 기준 1회 제공량이나 사용자가 말한 양으로.
   · "먹었고 저장도 해줘"면 foods에 기록하고 saves에도 넣는다(ref=그 음식 name).
   · 저장 결과는 앱이 답변 끝에 덧붙이니 reply에서 저장했다고 단정하지 않는다.
+- 현황에 저장함에서고른음식이 있으면 사용자가 저장함에서 골라 입력창에 넣은 것이다. 사용자 글에 남아 있는 항목만, 먹었다고 했을 때 그 이름과 저장값으로 foods에 기록한다(양을 바꿔 썼으면 저장값 비율로). 글에서 지운 항목은 기록하지 않는다. name은 저장함 이름 그대로 쓴다.
 - 실제 기록은 오직 foods·exercises·others 배열에 넣은 것만 저장된다. reply에 "기록했어요"라고 썼다면 같은 항목이 반드시 배열에 들어 있어야 하고, reply에 쓴 칼로리 숫자와 배열의 kcal 숫자가 같아야 한다.
 
 [배열 작성법]
@@ -1020,7 +1021,8 @@ function applyActions(actions){
   for (const a of actions){
     const t=Date.now();
     switch(a.type){
-      case 'food': { const d=ensureDay(); const k=num(a.kcal)>0?num(a.kcal):(num(a.value)||0);
+      case 'food': { const fp=fromPick(a); if (fp) Object.assign(a, fp);
+        const d=ensureDay(); const k=num(a.kcal)>0?num(a.kcal):(num(a.value)||0);
         const x={id:uid(), t, name:a.name||'음식', amount:a.amount||'', kcal:Math.round(k), carb:r1(num(a.carb)||0), protein:r1(num(a.protein)||0), fat:r1(num(a.fat)||0)};
         const alc=r1(num(a.alcohol)||0); if (alc>0) x.alcohol=alc;
         d.foods.push(x); recs.push({k:'섭취', ...x}); touched=true; break; }
@@ -1175,7 +1177,7 @@ async function runAI(text, img){
   } catch(e) {
     addMsg('bot', (e && e.message) || 'AI에 연결하지 못했어요.', {sys:true, retry:text, retryImg:!!img});
     if (img) LASTIMG=img;
-  } finally { busy=false; $('#send').disabled=false; showTyping(false); render(); }
+  } finally { busy=false; USEPICK=null; $('#send').disabled=false; showTyping(false); render(); }
 }
 // 오류 메시지의 "다시 보내기" 버튼
 $('#chat').addEventListener('click', e=>{
@@ -1498,7 +1500,7 @@ document.addEventListener('click', e=>{ if (ARMED && !e.target.closest('.del')) 
 
 /* ============ 저장함 (v1.7.0) ============
    저장값은 기록된 그대로. 섭취량은 '앞말 + 숫자 + 단위'로 나눠 두고, 수정할 땐 숫자만 바꿔 칼로리·탄단지를 비례 조정 */
-const BM_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="miter"><path d="M6 3h12v18l-6-4.5L6 21z"/></svg>';
+const BM_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="miter"><path d="M6 3h12v18l-6-4.5L6 21z"/></svg>';
 const srcKey = x => `${x.name}|${x.amount||''}`;
 function splitAmt(a){ a=String(a||'').trim(); const re=/(\d+(?:\.\d+)?)([^\d\s.,()]*)/g; let m, last=null; while((m=re.exec(a))) last=m;
   if(!last) return {pre:a, qty:null, unit:''};
@@ -1526,29 +1528,50 @@ function renderBox(){
 }
 function updBoxAdd(){ const a=$('#boxAdd'); a.classList.toggle('on', bsel.size>0); a.textContent = bsel.size ? `${bsel.size}개 추가` : '추가'; }
 // 고른 것들을 지금 시각으로 기록 → 대화에 기록 말풍선을 남겨 AI도 알게 함
+// 추가: 바로 기록하지 않고 입력창에 "아몬드 10알, 순두부 한봉 175g"을 넣고 키보드를 올림 (v1.7.1)
+// 보낼 때 고른 항목의 저장값을 AI에 함께 넘기고, 같은 이름으로 기록되면 앱이 저장값(양이 바뀌면 비율)으로 맞춤
+let BOXPICK=null, USEPICK=null;
 function addFromBox(){
-  if (!bsel.size) return; const d=ensureDay(); if(!d) { toast('먼저 설정에서 내 정보를 입력해 주세요'); return; }
-  const t=Date.now(), recs=[];
-  for (const b of (S.box||[])) if (bsel.has(b.id)) {
-    const x={id:uid(), t, name:b.name, amount:boxAmt(b), kcal:Math.round(b.kcal), carb:r1(b.carb), protein:r1(b.protein), fat:r1(b.fat)};
-    if (b.alcohol>0) x.alcohol=r1(b.alcohol);
-    d.foods.push(x); recs.push({k:'섭취', ...x});
-  }
-  bsel.clear(); const s=summarize(d);
-  const nums=[`섭취 ${N(s.intake)}kcal`, s.remain<0?`초과 칼로리 ${N(-s.remain)}kcal`:`남은 칼로리 ${N(s.remain)}kcal`, s.protRemain<0?`초과 단백질 ${N(-s.protRemain)}g`:`남은 단백질 ${N(s.protRemain)}g`];
-  const recText = recs.map(x=>`[${x.k}] ${x.name} ${x.amount} ${x.kcal}kcal`).join('\n');
-  addMsg('bot', `저장함에서 ${recs.map(x=>x.name).join(', ')} 기록했어요.\n지금 ${nums.join(', ')}이에요.`, {recs, recText});
-  closeBox(); render(); if (panelOpen) renderDaySheet();
+  if (!bsel.size) return;
+  const pick=(S.box||[]).filter(b=>bsel.has(b.id)).map(b=>({...b, amount:boxAmt(b)}));
+  bsel.clear();
+  const txt = pick.map(b=>[b.name, b.amount].filter(Boolean).join(' ')).join(', ');
+  const cur=input.value.replace(/\s+$/,'');
+  input.value = (cur ? cur+' ' : '') + txt + ' ';
+  BOXPICK = (BOXPICK||[]).concat(pick);
+  input.focus(); const n=input.value.length; try { input.setSelectionRange(n,n); } catch(_) {}
+  input.dispatchEvent(new Event('input'));
+  closeBox();
+}
+// 저장값으로 기록 맞추기: 이름이 같으면 저장값, 섭취량 숫자만 달라졌으면(단위 같음) 비율로
+function fromPick(a){
+  if (!USEPICK || !USEPICK.length) return null; const nm=String(a.name||'').trim();
+  const b=USEPICK.find(p=>p.name===nm) || USEPICK.find(p=>nm && (nm.includes(p.name)||p.name.includes(nm))); if(!b) return null;
+  let k=1; const am=splitAmt(a.amount);
+  if (b.qty!=null && am.qty!=null && am.qty>0 && (am.unit||'').trim()===(b.unit||'').trim()) k=am.qty/b.qty;
+  else if (String(a.amount||'').trim() && String(a.amount).trim()!==b.amount) return null;   // 양을 다르게 바꿔 썼으면 AI 값 그대로
+  return { kcal:Math.round(b.kcal*k), carb:r1(b.carb*k), protein:r1(b.protein*k), fat:r1(b.fat*k), alcohol:b.alcohol?r1(b.alcohol*k):0 };
 }
 // 꾹 눌러 고치기: 이름은 글자, 섭취량은 숫자만(단위 고정, 칼로리·탄단지 비례)
-function editBox(row, which){
+// 이름은 꾹 누른 글자 자리에 커서만, 섭취량은 숫자 전체 선택 (v1.7.1)
+function caretAt(el, x, y){ try {
+  const r = document.caretRangeFromPoint ? document.caretRangeFromPoint(x,y) : null;
+  if (r && el.contains(r.startContainer)) { const pre=document.createRange(); pre.selectNodeContents(el); pre.setEnd(r.startContainer, r.startOffset); return pre.toString().length; }
+  const p = document.caretPositionFromPoint ? document.caretPositionFromPoint(x,y) : null;
+  if (p && el.contains(p.offsetNode)) { const pre=document.createRange(); pre.selectNodeContents(el); pre.setEnd(p.offsetNode, p.offset); return pre.toString().length; }
+} catch(_) {} return null; }
+function fitInput(inp){ inp.style.width='1px'; inp.style.width=(inp.scrollWidth+2)+'px'; }
+function editBox(row, which, px, py){
   const b=(S.box||[]).find(x=>x.id===row.dataset.id); if(!b) return; disarmDelete();
   const host=row.querySelector(which==='name'?'.bx-nm':'.bx-am'); if (!host || host.querySelector('input')) return;
   if (which==='amt' && b.qty==null) return;
+  let at = which==='name' && px!=null ? caretAt(host, px, py) : null;
   host.innerHTML = which==='name' ? `<input class="bx-ed" value="${esc(b.name)}" enterkeyhint="done">`
     : `${esc(b.pre||'')}<input class="bx-ed" type="text" inputmode="decimal" value="${fq(b.qty)}" enterkeyhint="done">${esc(b.unit||'')}`;
-  if (which==='name') host.style.flex='1';
-  const inp=host.querySelector('input'); inp.focus(); inp.select();
+  const inp=host.querySelector('input'); fitInput(inp); inp.addEventListener('input', ()=>fitInput(inp));
+  inp.focus();
+  if (which==='name') { const n=inp.value.length; at = at==null ? n : Math.max(0, Math.min(n, at)); inp.setSelectionRange(at, at); }
+  else inp.select();
   const done=()=>{ inp.onblur=null;
     if (which==='name') { const v=inp.value.trim(); if (v) b.name=v; }
     else { const v=num(inp.value); if (v>0 && v!==b.qty) { const k=v/b.qty; b.kcal=Math.round(b.kcal*k); b.carb=r1(b.carb*k); b.protein=r1(b.protein*k); b.fat=r1(b.fat*k); if (b.alcohol) b.alcohol=r1(b.alcohol*k); b.qty=v; } }
@@ -1576,12 +1599,14 @@ function closeBox(from){ if(!boxOpen() || bxEl().dataset.closing) return; bxEl()
   comp.addEventListener('touchstart', e=>{
     if (e.touches.length!==1 || boxOpen() || !$('#crop').hidden || !$('#viewer').hidden) { y0=null; return; }
     const ta=$('#input'); if (e.target===ta && ta.scrollHeight>ta.clientHeight+2) { y0=null; return; }   // 여러 줄 입력창 안 스크롤은 그대로
+    // 입력칸·전송 버튼 줄 위에서 시작한 것만 (그 아래 여백은 아이폰 홈 표시줄 쪽이라 무시) (v1.7.1)
+    const fr=$('#field').getBoundingClientRect(); if (e.touches[0].clientY > fr.bottom+2) { y0=null; return; }
     y0=e.touches[0].clientY; x0=e.touches[0].clientX; lock=null; last=[];
   }, {passive:true});
   comp.addEventListener('touchmove', e=>{
     if (y0===null) return; const t=e.touches[0], dy=y0-t.clientY, dx=t.clientX-x0;
     if (!lock) { if (Math.abs(dy)<8 && Math.abs(dx)<8) return; lock = dy>0 && dy>Math.abs(dx) ? 'up' : 'no';
-      if (lock==='up') { showBox(); BXA.forEach(a=>a.cancel()); BXA=[]; } }
+      if (lock==='up') { showBox(); BXA.forEach(a=>a.cancel()); BXA=[]; OPEN_AT=Date.now(); } }
     if (lock!=='up') return; e.preventDefault();
     const H=bxH(); cur=Math.min(H, Math.max(0, H-dy)); bxSet(cur);
     last.push([Date.now(), t.clientY]); if (last.length>5) last.shift();
@@ -1590,8 +1615,13 @@ function closeBox(from){ if(!boxOpen() || bxEl().dataset.closing) return; bxEl()
     const v = last.length>1 ? (last[0][1]-last[last.length-1][1])/Math.max(1,last[last.length-1][0]-last[0][0]) : 0;   // 위로 빠르기(px/ms)
     if ((H-cur)/H>0.25 || v>0.5) bxAnim(cur, 0, Math.max(250, 1000*cur/H), 'cubic-bezier(.22,.8,.24,1)');
     else bxAnim(cur, H, 220, 'ease-out', hideBox); };
-  comp.addEventListener('touchend', end); comp.addEventListener('touchcancel', end);
+  comp.addEventListener('touchend', end);
+  // 아이폰이 손가락 신호를 끊으면(앱 전환 제스처) 올리지 않고 바로 닫음
+  comp.addEventListener('touchcancel', ()=>{ if (lock==='up') { BXA.forEach(a=>a.cancel()); BXA=[]; hideBox(); } y0=null; lock=null; });
 })();
+// 올리기 시작하고 얼마 안 돼 앱이 백그라운드로 가면(홈으로 쓸어 올림) 시트를 닫아 둠
+let OPEN_AT=0;
+document.addEventListener('visibilitychange', ()=>{ if (document.hidden && boxOpen() && Date.now()-OPEN_AT<1500) { BXA.forEach(a=>a.cancel()); BXA=[]; hideBox(); } });
 // 시트 안: 아래로 끌면 손가락 따라 내려가고, 바깥(어두운 곳) 탭이면 닫힘
 (function(){
   const sh=$('#boxSheet .bx'), L=$('#boxList'); let y0=null, dy=0, last=[];
@@ -1614,7 +1644,7 @@ function closeBox(from){ if(!boxOpen() || bxEl().dataset.closing) return; bxEl()
   let ht=null, hx=0, hy=0;
   L.addEventListener('touchstart', e=>{ const tgt=e.target.closest('.bx-nm,.bx-am'); clearTimeout(ht); if(!tgt || tgt.querySelector('input')) return;
     hx=e.touches[0].clientX; hy=e.touches[0].clientY; const row=tgt.closest('.bx-r'), which=tgt.classList.contains('bx-nm')?'name':'amt';
-    ht=setTimeout(()=>{ ht=null; editBox(row, which); }, 500); }, {passive:true});
+    ht=setTimeout(()=>{ ht=null; editBox(row, which, hx, hy); }, 500); }, {passive:true});
   L.addEventListener('touchmove', e=>{ if(ht && (Math.abs(e.touches[0].clientX-hx)>8 || Math.abs(e.touches[0].clientY-hy)>8)) { clearTimeout(ht); ht=null; } }, {passive:true});
   L.addEventListener('touchend', ()=>{ clearTimeout(ht); ht=null; });
   L.addEventListener('contextmenu', e=>e.preventDefault());
@@ -1939,9 +1969,9 @@ function intro(){
   addMsg('bot', '안녕하세요!\n시작하려면 아래 정보를 한 번에 알려주세요.\n\n예) 생년월일 1988-03-15, 남성, 키 175, 몸무게 78, 목표 1800kcal, 단백질 120g\n\n기초대사량 계산(Mifflin-St Jeor)에 성별이 필요해요. 음식·운동 칼로리 추정과 질문 답변은 화면을 왼쪽으로 밀어 기록 화면을 열고, 위쪽 설정에서 Gemini API 키를 넣으면 켜집니다.', {sys:true});
 }
 const input=$('#input');
-input.addEventListener('input', ()=>{ input.style.height='auto'; input.style.height=Math.min(120,input.scrollHeight)+'px'; });
+input.addEventListener('input', ()=>{ input.style.height='auto'; input.style.height=Math.min(120,input.scrollHeight)+'px'; if (!input.value.trim()) BOXPICK=null; });
 input.addEventListener('keydown', e=>{ if(e.key==='Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); $('#composer').requestSubmit(); input.blur(); } });  // 엔터 전송 시 키보드도 내리기 (v1.6.1)
-$('#composer').addEventListener('submit', e=>{ e.preventDefault(); const t=input.value; if((!t.trim()&&!PIMG)||busy) return; const img=PIMG; input.value=''; input.style.height='auto'; setPending(null); handle(t, img); });
+$('#composer').addEventListener('submit', e=>{ e.preventDefault(); const t=input.value; if((!t.trim()&&!PIMG)||busy) return; const img=PIMG; input.value=''; input.style.height='auto'; setPending(null); USEPICK=BOXPICK; BOXPICK=null; handle(t, img); });
 
 /* ============ 사진 첨부 (v1.4.0) ============
    입력창 안 + → 카메라 / 사진 보관함 (바깥 누르면 닫힘). 붙여넣기도 됨.
